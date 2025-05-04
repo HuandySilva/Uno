@@ -1,6 +1,5 @@
 import { CartaUno } from "../types/CartaUno";
 import { Audio } from "expo-av";
-import backgroundMusic from "@/assets/sounds/background.mp3";
 
 /**
  * Função genérica que toca qualquer som
@@ -70,4 +69,25 @@ export async function playCardSound(carta: CartaUno) {
  */
 export async function playPunishmentSound() {
   await playSound(require("@/assets/sounds/punishment.mp3"), 1.0);
+}
+
+function getEndingSound(ending: string) {
+  switch (ending) {
+    case "winner":
+      return require("@/assets/sounds/winner.mp3");
+    case "loser":
+      return require("@/assets/sounds/loser.mp3");
+    case "draw":
+      return require("@/assets/sounds/draw.mp3");
+    default:
+      console.warn(`Som não encontrado para: ${ending}`);
+      return null;
+  }
+}
+
+export async function playEndingSound(ending: string) {
+  const sound = getEndingSound(ending);
+  if (sound) {
+    await playSound(sound, 1.0);
+  }
 }

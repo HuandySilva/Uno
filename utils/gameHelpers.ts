@@ -88,7 +88,6 @@ export function podeJogar(
       console.log(
         `Carta topo: ${cartaTopo?.cor} ${cartaTopo?.numero} ${cartaTopo?.acaoEspecial}`
       );
-      console.log(`pode jogar: true`);
       return true;
     }
 
@@ -161,11 +160,9 @@ export function podeJogar(
     podeJoga = true;
   }
 
-  console.log(`carta: ${carta?.cor} ${carta?.numero}, ${carta?.acaoEspecial}`);
   console.log(
     `Carta topo: ${cartaTopo?.cor} ${cartaTopo?.numero} ${cartaTopo?.acaoEspecial}`
   );
-  console.log(`pode jogar: ${podeJoga}`);
 
   return podeJoga;
 }
@@ -193,36 +190,4 @@ export function quantosComprar(
   }
 
   return 1;
-}
-
-export function anunciarCarta(carta: CartaUno, quem: "jogador" | "pc") {
-  const nome = quem === "jogador" ? "Você" : "O PC";
-
-  const mensagem = `${nome} jogou ${carta.acaoEspecial ?? carta.numero}${
-    carta.cor ? ` da cor ${carta.cor}` : ""
-  }`;
-
-  setTimeout(() => {
-    AccessibilityInfo.announceForAccessibility(mensagem);
-  }, 1000);
-}
-
-export function anunciarPunicao(quem: "jogador" | "pc") {
-  const mensagem =
-    quem === "jogador"
-      ? "Você foi punido por não dizer Uno."
-      : "O PC foi punido por não dizer Uno.";
-  setTimeout(() => {
-    AccessibilityInfo.announceForAccessibility(mensagem);
-  }, 1000);
-}
-
-export function anunciarCompra(quem: "jogador" | "pc", quantidade: number) {
-  const sujeito = quem === "jogador" ? "Você" : "O PC";
-  const cartaOuCartas = quantidade === 1 ? "carta" : "cartas";
-  const mensagem = `${sujeito} comprou ${quantidade} ${cartaOuCartas}.`;
-
-  setTimeout(() => {
-    AccessibilityInfo.announceForAccessibility(mensagem);
-  }, 1000);
 }

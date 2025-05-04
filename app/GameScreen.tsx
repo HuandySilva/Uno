@@ -8,6 +8,8 @@ import PopupEscolherCor from "@/components/PopupEscolherCor";
 import ChooseCard from "@/components/ChooseCard";
 import ChosenColorBanner from "@/components/ChosenColorBanner";
 import { playUnoSound } from "../utils/soundUtils";
+import { anunciarCorEscolhida } from "@/utils/announcementUtils";
+
 export default function GameScreen() {
   const {
     maoJogador,
@@ -55,23 +57,6 @@ export default function GameScreen() {
     setCorAtual(cor); // 👈 Ative isso quando precisar!
     setMostrarPopup(false);
     setVezDoJogador(false);
-  }
-
-  function anunciarCorEscolhida() {
-    const isCoringa =
-      cartaTopo?.acaoEspecial === "coringa" ||
-      cartaTopo?.acaoEspecial === "comprarQuatro";
-
-    const mensagem =
-      isCoringa && corAtual
-        ? `Cor escolhida: ${corAtual}`
-        : "Não há carta coringa no topo da pilha.";
-
-    console.log("[anúncio de cor]", mensagem);
-
-    setTimeout(() => {
-      AccessibilityInfo.announceForAccessibility(mensagem);
-    }, 1000);
   }
 
   const handleComprar = () => {
@@ -129,7 +114,10 @@ export default function GameScreen() {
         onEscolher={escolherCor}
       />
 
-      <Button title="Cor escolhida" onPress={anunciarCorEscolhida} />
+      <Button
+        title="Cor escolhida"
+        onPress={() => anunciarCorEscolhida(cartaTopo, corAtual)}
+      />
 
       <Button
         title="Dizer UNO!"

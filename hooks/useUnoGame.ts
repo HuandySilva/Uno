@@ -9,9 +9,6 @@ import {
   calcularPontos,
   podeJogar,
   quantosComprar,
-  anunciarCarta,
-  anunciarPunicao,
-  anunciarCompra,
 } from "../utils/gameHelpers";
 import {
   playBackgroundMusic,
@@ -20,6 +17,11 @@ import {
   playCardSound,
   playPunishmentSound,
 } from "../utils/soundUtils";
+import {
+  anunciarCarta,
+  anunciarPunicao,
+  anunciarCompra,
+} from "../utils/announcementUtils";
 
 export function useUnoGame() {
   const [baralho, setBaralho] = useState<CartaUno[]>([]); // cartas que sobraram no monte
