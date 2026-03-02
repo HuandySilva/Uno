@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, Button } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import { CartaUno } from "@/types/CartaUno";
 import { useState } from "react";
@@ -11,20 +11,26 @@ interface Props {
 export default function ChooseCard({ maoJogador, jogar }: Props) {
   const [cartaSelecionada, setCartaSelecionada] = useState<string>("");
 
-  const handleJogar = () => {
-    jogar(Number(cartaSelecionada));
+  const handleValueChange = (itemValue: string) => {
+    setCartaSelecionada(itemValue);
+
+    if (itemValue !== "") {
+      jogar(Number(itemValue));
+      setCartaSelecionada("");
+    }
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Escolha sua carta:</Text>
+      <Text style={styles.title} accessibilityRole="header">
+        Escolha sua carta:
+      </Text>
 
       <Picker
         selectedValue={cartaSelecionada}
-        onValueChange={(itemValue) => {
-          setCartaSelecionada(itemValue);
-        }}
+        onValueChange={handleValueChange}
         style={styles.picker}
+        accessibilityLabel="Lista de cartas na sua mão. Selecione uma para jogar imediatamente."
       >
         <Picker.Item label="Selecione uma carta..." value="" />
         {maoJogador.map((carta, index) => (
@@ -35,12 +41,6 @@ export default function ChooseCard({ maoJogador, jogar }: Props) {
           />
         ))}
       </Picker>
-
-      <Button
-        title="Jogar carta"
-        onPress={handleJogar}
-        disabled={cartaSelecionada === ""}
-      />
     </View>
   );
 }
