@@ -1,9 +1,33 @@
-import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import React, { useEffect } from "react";
+import { Platform, Dimensions } from "react-native";
+import * as ScreenOrientation from "expo-screen-orientation";
 
 export default function MyMainScreen() {
+  useEffect(() => {
+    async function handleOrientation() {
+      const { width, height } = Dimensions.get("window");
+      // No Android, tablets geralmente têm a menor largura (window width) > 600dp
+      const isTablet =
+        Platform.OS === "ios" ? Platform.isPad : Math.min(width, height) >= 600;
+
+      if (isTablet) {
+        await ScreenOrientation.lockAsync(
+          ScreenOrientation.OrientationLock.LANDSCAPE,
+        );
+      }
+    }
+
+    handleOrientation();
+
+    // Quando sair da tela de jogo, libera para o usuário usar como quiser
+    return () => {
+      ScreenOrientation.unlockAsync();
+    };
+  }, []);
+
   const router = useRouter();
 
   const irParaJogo = () => {
@@ -21,7 +45,7 @@ export default function MyMainScreen() {
         </Text>
 
         <Text style={styles.subtitle}>
-          Desenvolvido com foco em lógica e performance.
+          Derrote a máquina em uma partida divertida de uno.
         </Text>
 
         <TouchableOpacity

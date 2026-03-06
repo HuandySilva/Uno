@@ -1,5 +1,12 @@
-import { View, Text, StyleSheet } from "react-native";
-import { Picker } from "@react-native-picker/picker";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Modal,
+  FlatList,
+  Button,
+} from "react-native";
 import { CartaUno } from "@/types/CartaUno";
 import { useState } from "react";
 
@@ -9,56 +16,128 @@ interface Props {
 }
 
 export default function ChooseCard({ maoJogador, jogar }: Props) {
-  const [cartaSelecionada, setCartaSelecionada] = useState<string>("");
+  const [modalVisivel, setModalVisivel] = useState(false);
 
-  const handleValueChange = (itemValue: string) => {
-    setCartaSelecionada(itemValue);
-
-    if (itemValue !== "") {
-      jogar(Number(itemValue));
-      setCartaSelecionada("");
-    }
+  const selecionarEJogar = (index: number) => {
+    setModalVisivel(false);
+    jogar(index);
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title} accessibilityRole="header">
-        Escolha sua carta:
-      </Text>
-
-      <Picker
-        selectedValue={cartaSelecionada}
-        onValueChange={handleValueChange}
-        style={styles.picker}
-        accessibilityLabel="Lista de cartas na sua mão. Selecione uma para jogar imediatamente."
+      {/* Botão que abre o "fuá" de cartas */}
+      <TouchableOpacity
+        style={styles.openButton}
+        onPress={() => setModalVisivel(true)}
+        accessibilityLabel={`Ver minhas cartas. Você tem ${maoJogador.length} cartas.`}
       >
-        <Picker.Item label="Selecione uma carta..." value="" />
-        {maoJogador.map((carta, index) => (
-          <Picker.Item
-            key={index}
-            label={`${carta.acaoEspecial ?? carta.numero} (${carta.cor})`}
-            value={index.toString()}
-          />
-        ))}
-      </Picker>
+        <Text style={styles.openButtonText}>
+          Minha Mão ({maoJogador.length})
+        </Text>
+      </TouchableOpacity>
+
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalVisivel}
+        onRequestClose={() => setModalVisivel(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle} accessibilityRole="header">
+              Escolha uma carta para jogar:
+            </Text>
+
+            <FlatList
+              data={maoJogador}
+              keyExtractor={(_, index) => index.toString()}
+              renderItem={({ item, index }) => (
+                <TouchableOpacity
+                  style={[
+                    styles.cardItem,
+                    {
+                      borderLeftColor: item.cor === "preto" ? "#333" : item.cor,
+                    },
+                  ]}
+                  onPress={() => selecionarEJogar(index)}
+                  accessibilityLabel={`${item.acaoEspecial ?? item.numero} de cor ${item.cor}`}
+                >
+                  <Text style={styles.cardText}>
+                    {item.acaoEspecial ?? item.numero} ({item.cor})
+                  </Text>
+                </TouchableOpacity>
+              )}
+              style={{ maxHeight: 400 }}
+            />
+
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => setModalVisivel(false)}
+            >
+              <Text style={styles.closeButtonText}>Fechar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    paddingTop: 60,
+    marginVertical: 15,
+  },
+  openButton: {
+    backgroundColor: "#2196F3",
+    padding: 15,
+    borderRadius: 10,
+    width: 250,
     alignItems: "center",
-    backgroundColor: "#fff",
   },
-  title: {
-    fontSize: 20,
+  openButtonText: {
+    color: "white",
+    fontWeight: "bold",
+    fontSize: 16,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContent: {
+    width: "85%",
+    backgroundColor: "white",
+    borderRadius: 20,
+    padding: 20,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    elevation: 5,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 15,
+  },
+  cardItem: {
+    width: 280,
+    padding: 15,
+    borderLeftWidth: 10,
+    backgroundColor: "#f0f0f0",
     marginBottom: 10,
+    borderRadius: 5,
   },
-  picker: {
-    width: 300,
-    height: 50,
-    marginBottom: 20,
+  cardText: {
+    fontSize: 16,
+  },
+  closeButton: {
+    marginTop: 15,
+    padding: 10,
+  },
+  closeButtonText: {
+    color: "#FF5252",
+    fontWeight: "bold",
   },
 });

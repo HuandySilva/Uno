@@ -69,11 +69,12 @@ export function calcularPontos(mao: CartaUno[]): number {
 
   return total;
 }
+
 export function podeJogar(
   carta: CartaUno,
   cartaTopo: CartaUno | null,
   corAtual: string | null,
-  precisaComprar: boolean
+  precisaComprar: boolean,
 ): boolean {
   if (!cartaTopo) return false;
 
@@ -82,12 +83,12 @@ export function podeJogar(
       cartaTopo?.acaoEspecial === "comprarDois" &&
       carta?.acaoEspecial === "comprarDois"
     ) {
-      console.log(
-        `carta: ${carta?.cor} ${carta?.numero}, ${carta?.acaoEspecial}`
-      );
-      console.log(
-        `Carta topo: ${cartaTopo?.cor} ${cartaTopo?.numero} ${cartaTopo?.acaoEspecial}`
-      );
+      /*console.log(
+        `carta: ${carta?.cor} ${carta?.numero}, ${carta?.acaoEspecial}`,
+      );*/
+      /*console.log(
+        `Carta topo: ${cartaTopo?.cor} ${cartaTopo?.numero} ${cartaTopo?.acaoEspecial}`,
+      );*/
       return true;
     }
 
@@ -95,23 +96,23 @@ export function podeJogar(
       cartaTopo?.acaoEspecial === "comprarQuatro" &&
       carta?.acaoEspecial === "comprarQuatro"
     ) {
-      console.log(
-        `carta: ${carta?.cor} ${carta?.numero}, ${carta?.acaoEspecial}`
+      /*console.log(
+        `carta: ${carta?.cor} ${carta?.numero}, ${carta?.acaoEspecial}`,
       );
       console.log(
-        `Carta topo: ${cartaTopo?.cor} ${cartaTopo?.numero} ${cartaTopo?.acaoEspecial}`
+        `Carta topo: ${cartaTopo?.cor} ${cartaTopo?.numero} ${cartaTopo?.acaoEspecial}`,
       );
-      console.log(`pode jogar: true`);
+      console.log(`pode jogar: true`);*/
       return true;
     }
 
-    console.log(
-      `carta: ${carta?.cor} ${carta?.numero}, ${carta?.acaoEspecial}`
+    /*console.log(
+      `carta: ${carta?.cor} ${carta?.numero}, ${carta?.acaoEspecial}`,
     );
     console.log(
-      `Carta topo: ${cartaTopo?.cor} ${cartaTopo?.numero} ${cartaTopo?.acaoEspecial}`
+      `Carta topo: ${cartaTopo?.cor} ${cartaTopo?.numero} ${cartaTopo?.acaoEspecial}`,
     );
-    console.log(`pode jogar: false`);
+    console.log(`pode jogar: false`);*/
     return false;
   }
 
@@ -160,9 +161,9 @@ export function podeJogar(
     podeJoga = true;
   }
 
-  console.log(
-    `Carta topo: ${cartaTopo?.cor} ${cartaTopo?.numero} ${cartaTopo?.acaoEspecial}`
-  );
+  /*console.log(
+    `Carta topo: ${cartaTopo?.cor} ${cartaTopo?.numero} ${cartaTopo?.acaoEspecial}`,
+  );*/
 
   return podeJoga;
 }
@@ -171,7 +172,7 @@ export function quantosComprar(
   topo: CartaUno | null,
   punicaoPorNaoDizerUno: boolean,
   precisaComprar: boolean,
-  historicoMesa: CartaUno[]
+  historicoMesa: CartaUno[],
 ): number {
   if (!topo) return 1;
   if (punicaoPorNaoDizerUno) return 2;
@@ -190,4 +191,17 @@ export function quantosComprar(
   }
 
   return 1;
+}
+
+export function temCartaJogavel(
+  mao: CartaUno[],
+  cartaTopo: CartaUno | null,
+  corAtual: string | null,
+  precisaComprar: boolean,
+): boolean {
+  if (!cartaTopo) return false;
+
+  return mao.some((carta) =>
+    podeJogar(carta, cartaTopo, corAtual, precisaComprar),
+  );
 }

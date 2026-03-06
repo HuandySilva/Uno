@@ -3,12 +3,13 @@ import { CartaUno } from "../types/CartaUno";
 import { AccessibilityInfo } from "react-native";
 import { useRouter } from "expo-router"; // se você estiver usando expo-router
 import {
-  pcEscolheCor,
   gerarBaralho,
+  pcEscolheCor,
   shuffle,
   calcularPontos,
   podeJogar,
   quantosComprar,
+  temCartaJogavel,
 } from "../utils/gameHelpers";
 import {
   playBackgroundMusic,
@@ -37,22 +38,37 @@ export function useUnoGame() {
   const [pcDisseUno, setPcDisseUno] = useState(false);
   const punicaoPorNaoDizerUno = useRef(false);
   const precisaComprar = useRef(false);
+  const musicaRef = useRef<any>(null);
+  const [jaComprouNoTurno, setJaComprouNoTurno] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
+    const pararMusica = async () => {
+      if (musicaRef.current) {
+        await musicaRef.current.stopAsync();
+        await musicaRef.current.unloadAsync();
+        musicaRef.current = null;
+      }
+    };
+
     if (jogoIniciado) {
-      if (maoJogador.length === 0 && maoPC.length > 0) {
-        router.replace("/WinScreen");
-      } else if (maoPC.length === 0 && maoJogador.length > 0) {
-        router.replace("/LoseScreen");
-      } else if (maoJogador.length === 0 && maoPC.length === 0) {
-        router.replace("/DrawScreen");
-      } else if (baralho.length === 0 && !alguemPodeJogar()) {
-        // Baralho acabou e ninguém venceu = empate
-        router.replace("/DrawScreen");
+      if (
+        maoJogador.length === 0 ||
+        maoPC.length === 0 ||
+        (baralho.length === 0 && !alguemPodeJogar())
+      ) {
+        pararMusica(); // Para a música antes de navegar
+
+        if (maoJogador.length === 0 && maoPC.length > 0) {
+          router.replace("/WinScreen");
+        } else if (maoPC.length === 0 && maoJogador.length > 0) {
+          router.replace("/LoseScreen");
+        } else {
+          router.replace("/DrawScreen");
+        }
       }
     }
-  }, [maoJogador, maoPC, baralho]);
+  }, [maoJogador.length, maoPC.length, baralho.length]);
 
   useEffect(() => {
     if (!jogoIniciado) return;
@@ -61,17 +77,16 @@ export function useUnoGame() {
     if (maoJogador.length === 1 && !jogadorDisseUno) {
       playPunishmentSound();
       punicaoPorNaoDizerUno.current = true;
-      comprar();
+      precisaComprar.current = true;
       anunciarPunicao("jogador");
     }
 
     // (Opcional) Punição do PC
     if (maoPC.length === 1 && !pcDisseUno) {
       punicaoPorNaoDizerUno.current = true;
-      comprar();
       anunciarPunicao("pc");
     }
-  }, [maoJogador, maoPC]);
+  }, [maoJogador.length, maoPC.length]);
 
   useEffect(() => {
     if (!vezDoJogador) {
@@ -80,11 +95,22 @@ export function useUnoGame() {
       }, 800); // pequeno delay pro "pensando..."
       return () => clearTimeout(timeout);
     }
-  }, [maoPC, vezDoJogador]);
+  }, [vezDoJogador, maoPC.length]);
 
   useEffect(() => {
-    const backgroundMusic = playBackgroundMusic();
+    const configurarMusica = async () => {
+      musicaRef.current = await playBackgroundMusic();
+    };
+
+    configurarMusica();
     iniciarJogo();
+
+    return () => {
+      if (musicaRef.current) {
+        musicaRef.current.stopAsync();
+        musicaRef.current.unloadAsync();
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -123,6 +149,7 @@ export function useUnoGame() {
   }
 
   function jogarPorIndice(indice: number) {
+    console.log("jogada do jogador ja comprou no turno: ", jaComprouNoTurno);
     const carta = maoJogador[indice];
     if (podeJogar(carta, cartaTopo, corAtual, precisaComprar.current)) {
       if (cartaTopo) {
@@ -140,10 +167,11 @@ export function useUnoGame() {
       } else {
         setCorAtual(null);
         setVezDoJogador(false);
+        setJaComprouNoTurno(false);
       }
     } else {
       AccessibilityInfo.announceForAccessibility(
-        "Você não pode jogar essa carta!"
+        "Você não pode jogar essa carta!",
       );
     }
   }
@@ -158,9 +186,22 @@ export function useUnoGame() {
     }
   }
 
+  function reembaralharHistorico() {
+    if (historicoMesa.length > 0) {
+      const novoBaralho = shuffle([...historicoMesa]);
+
+      setBaralho(novoBaralho);
+      setHistoricoMesa([]);
+
+      playShuffleSound();
+      // announcementUtils.anunciarReembaralhamento();
+    }
+  }
+
   function jogadaDoPC() {
+    console.log("jogada do pc, ja comprou no turno: ", jaComprouNoTurno);
     const cartaJogavel = maoPC.find((carta) =>
-      podeJogar(carta, cartaTopo, corAtual, precisaComprar.current)
+      podeJogar(carta, cartaTopo, corAtual, precisaComprar.current),
     );
 
     if (cartaJogavel) {
@@ -176,30 +217,36 @@ export function useUnoGame() {
       setCartaTopo(cartaJogavel);
       setMaoPC((prev) => prev.filter((c) => c !== cartaJogavel));
       setVezDoJogador(true); // passa a vez
+      setJaComprouNoTurno(false);
       playCardSound(cartaJogavel);
       anunciarCarta(cartaJogavel, "pc");
       if (maoPC.length - 1 === 1) {
         setPcDisseUno(Math.random() < 0.75);
       }
-    } else if (baralho.length > 0) {
+    } else if (baralho.length > 0 && !jaComprouNoTurno) {
       comprar(); // isso vai alterar maoPC, o que reativa o useEffect
-    } else {
-      setVezDoJogador(true); // baralho acabou, PC passa a vez
     }
   }
 
   function comprar() {
-    if (!baralho || baralho.length === 0) return;
+    if (jaComprouNoTurno) return;
+
+    if (baralho.length === 0) {
+      reembaralharHistorico();
+      //console.log("Histórico foi embaralhado.");
+    }
 
     const novoBaralho = [...baralho];
+    //console.log("novo baralho", novoBaralho);
     const quantidade = quantosComprar(
       cartaTopo,
       punicaoPorNaoDizerUno.current,
       precisaComprar.current,
-      historicoMesa
+      historicoMesa,
     );
+    //console.log("Número de cartas a comprar:", quantidade);
     const compradas: CartaUno[] = [];
-
+    //console.log(`compradas esta vazio: ${compradas.length === 0}`);
     let i = 0;
     while (novoBaralho.length > 0 && i < quantidade) {
       const carta = novoBaralho.pop();
@@ -207,30 +254,72 @@ export function useUnoGame() {
       i++;
     }
 
+    //console.log("medida do compradas:", compradas.length);
     setBaralho(novoBaralho);
+
     playDrawSound();
+
     if (vezDoJogador) {
-      setMaoJogador((prev) => [...prev, ...compradas]);
+      setMaoJogador((prev) => {
+        const novaMao = [...prev, ...compradas];
+
+        if (
+          !temCartaJogavel(novaMao, cartaTopo, corAtual, precisaComprar.current)
+        ) {
+          setVezDoJogador(false);
+          setJaComprouNoTurno(false);
+
+          //console.log("Caiu no if onde não tem carta jogável");
+          //console.log("observer o vez do jogador", vezDoJogador);
+        }
+
+        return novaMao;
+      });
+
       anunciarCompra("jogador", quantidade);
       setJogadorDisseUno(false);
     } else {
-      setMaoPC((prev) => [...prev, ...compradas]);
+      setMaoPC((prev) => {
+        const novaMao = [...prev, ...compradas];
+
+        if (
+          !temCartaJogavel(novaMao, cartaTopo, corAtual, precisaComprar.current)
+        ) {
+          setVezDoJogador(true);
+          setJaComprouNoTurno(false);
+
+          /*console.log(
+            "Caiu onde não tem cartas do pc, observe o vez do jogador pra ver se tá correto",
+          );
+          console.log("vez do jogador:", vezDoJogador);*/
+        }
+
+        return novaMao;
+      });
+
       anunciarCompra("pc", quantidade);
       setPcDisseUno(false);
     }
+
     if (punicaoPorNaoDizerUno.current) {
       punicaoPorNaoDizerUno.current = false;
     }
+
     precisaComprar.current = false;
+    setJaComprouNoTurno(true);
+
+    //console.log("precisa comporar: ", precisaComprar.current);
+    //console.log("ja comprou: ", jaComprouNoTurno);
+    //console.log("Vez do jogoador: ", vezDoJogador);
   }
 
   function alguemPodeJogar(): boolean {
     return (
       maoJogador.some((carta) =>
-        podeJogar(carta, cartaTopo, corAtual, precisaComprar.current)
+        podeJogar(carta, cartaTopo, corAtual, precisaComprar.current),
       ) ||
       maoPC.some((carta) =>
-        podeJogar(carta, cartaTopo, corAtual, precisaComprar.current)
+        podeJogar(carta, cartaTopo, corAtual, precisaComprar.current),
       )
     );
   }
@@ -242,6 +331,7 @@ export function useUnoGame() {
     cartaTopo,
     vezDoJogador,
     setVezDoJogador,
+    jaComprouNoTurno,
     historicoMesa,
     corAtual,
     setCorAtual,

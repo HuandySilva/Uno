@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   AccessibilityInfo,
-  findNodeHandle,
+  Platform,
 } from "react-native";
 
 interface Props {
@@ -20,16 +20,24 @@ export default function EscolherCorDialog({
   onFechar,
   onEscolher,
 }: Props) {
-  const tituloRef = useRef(null);
+  const tituloRef = useRef<any>(null);
 
   useEffect(() => {
     if (visivel && tituloRef.current) {
-      const reactTag = findNodeHandle(tituloRef.current);
-      if (reactTag) {
-        AccessibilityInfo.setAccessibilityFocus(reactTag);
+      if (Platform.OS === "web") {
+        tituloRef.current.focus?.();
+      } else {
+        AccessibilityInfo.setAccessibilityFocus(tituloRef.current);
       }
     }
   }, [visivel]);
+
+  const cores = [
+    { nome: "Vermelho", valor: "vermelho" },
+    { nome: "Azul", valor: "azul" },
+    { nome: "Verde", valor: "verde" },
+    { nome: "Amarelo", valor: "amarelo" },
+  ];
 
   return (
     <Modal
@@ -46,6 +54,7 @@ export default function EscolherCorDialog({
             style={styles.titulo}
             accessible
             accessibilityRole="header"
+            {...(Platform.OS === "web" ? { tabIndex: -1 } : {})}
             accessibilityLabel="Você jogou um coringa. Escolha a cor desejada."
           >
             Você jogou um coringa!
@@ -53,13 +62,15 @@ export default function EscolherCorDialog({
 
           <Text style={styles.subtitulo}>Escolha a cor desejada:</Text>
 
-          {["vermelho", "azul", "verde", "amarelo"].map((cor) => (
+          {cores.map((cor) => (
             <TouchableOpacity
-              key={cor}
-              onPress={() => onEscolher(cor)}
-              accessibilityLabel={`Escolher cor ${cor}`}
+              key={cor.valor}
+              onPress={() => onEscolher(cor.valor)}
+              style={styles.botaoCor}
+              accessibilityLabel={`Escolher cor ${cor.nome}`}
+              accessibilityRole="button"
             >
-              <Text style={styles.opcao}>{cor}</Text>
+              <Text style={styles.opcao}>{cor.nome}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -71,7 +82,7 @@ export default function EscolherCorDialog({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: "#000000aa",
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -82,21 +93,34 @@ const styles = StyleSheet.create({
     width: "85%",
     alignItems: "center",
     elevation: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
   },
   titulo: {
     fontSize: 22,
     fontWeight: "bold",
     marginBottom: 8,
     textAlign: "center",
+    color: "#000",
   },
   subtitulo: {
     fontSize: 18,
     marginBottom: 16,
     textAlign: "center",
+    color: "#444",
+  },
+  botaoCor: {
+    width: "100%",
+    paddingVertical: 12,
+    alignItems: "center",
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "#eee",
   },
   opcao: {
     fontSize: 18,
-    marginVertical: 6,
-    textTransform: "capitalize",
+    color: "#007AFF",
+    fontWeight: "500",
   },
 });

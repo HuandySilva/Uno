@@ -1,8 +1,9 @@
+import { registerRootComponent } from "expo";
+import * as AudioFactory from "expo-av"; // Importa como factory
 import { View, Text, StyleSheet, Button, Alert } from "react-native";
 import { AccessibilityInfo } from "react-native";
 import { useState, useEffect } from "react";
 import { useUnoGame } from "@/hooks/useUnoGame";
-import { Picker } from "@react-native-picker/picker";
 import HistoricoMesa from "@/components/HistoricoMesa";
 import PopupEscolherCor from "@/components/PopupEscolherCor";
 import ChooseCard from "@/components/ChooseCard";
@@ -18,6 +19,7 @@ export default function GameScreen() {
     historicoMesa,
     vezDoJogador,
     setVezDoJogador,
+    jaComprouNoTurno,
     corAtual,
     baralho,
     jogoIniciado,
@@ -100,9 +102,11 @@ export default function GameScreen() {
       {mostrarHistorico && <HistoricoMesa historico={historicoMesa} />}
 
       <Button
-        title="Comprar"
+        title={jaComprouNoTurno ? "Já comprou (Passe a vez)" : "Comprar"}
         onPress={handleComprar}
-        disabled={!vezDoJogador && baralho.length > 0}
+        // O botão fica desativado SE:
+        // Não for minha vez OU eu já tiver comprado OU o baralho acabar
+        disabled={!vezDoJogador || jaComprouNoTurno || baralho.length === 0}
       />
 
       <Button title="Minhas cartas" onPress={verCartasJogador} />
