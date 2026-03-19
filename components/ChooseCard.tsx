@@ -5,10 +5,11 @@ import {
   TouchableOpacity,
   Modal,
   FlatList,
-  Button,
 } from "react-native";
 import { CartaUno } from "@/types/CartaUno";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import { useCardTranslator } from "@/hooks/useCardTranslator";
 
 interface Props {
   maoJogador: CartaUno[];
@@ -17,64 +18,67 @@ interface Props {
 
 export default function ChooseCard({ maoJogador, jogar }: Props) {
   const [modalVisivel, setModalVisivel] = useState(false);
+  const { t } = useTranslation();
+  const { getCardTranslation } = useCardTranslator();
 
-  const selecionarEJogar = (index: number) => {
-    setModalVisivel(false);
-    jogar(index);
+  const renderItem = ({ item, index }: { item: CartaUno; index: number }) => {
+    const { valor, cor, colorKey, full } = getCardTranslation(item);
+
+    return (
+      <TouchableOpacity
+        // A lógica da borda agora usa a cor vinda do utilitário ou o fallback do estilo
+        style={[
+          styles.cardItem,
+          {
+            borderLeftColor:
+              colorKey === "special" ? styles.specialCard.color : colorKey,
+          },
+        ]}
+        onPress={() => {
+          setModalVisivel(false);
+          jogar(index);
+        }}
+        accessibilityLabel={t("Card_acc_label", { value: valor, color: cor })}
+      >
+        <Text style={styles.cardText}>{full}</Text>
+      </TouchableOpacity>
+    );
   };
 
   return (
     <View style={styles.container}>
-      {/* Botão que abre o "fuá" de cartas */}
       <TouchableOpacity
         style={styles.openButton}
         onPress={() => setModalVisivel(true)}
-        accessibilityLabel={`Ver minhas cartas. Você tem ${maoJogador.length} cartas.`}
+        accessibilityLabel={t("Open_hand_acc")}
       >
-        <Text style={styles.openButtonText}>
-          Minha Mão ({maoJogador.length})
-        </Text>
+        <Text style={styles.openButtonText}>{t("My_hand_label")}</Text>
       </TouchableOpacity>
 
       <Modal
-        animationType="slide"
-        transparent={true}
         visible={modalVisivel}
+        transparent
+        animationType="slide"
         onRequestClose={() => setModalVisivel(false)}
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle} accessibilityRole="header">
-              Escolha uma carta para jogar:
+              {t("Choose_card_title")}
             </Text>
 
             <FlatList
               data={maoJogador}
-              keyExtractor={(_, index) => index.toString()}
-              renderItem={({ item, index }) => (
-                <TouchableOpacity
-                  style={[
-                    styles.cardItem,
-                    {
-                      borderLeftColor: item.cor === "preto" ? "#333" : item.cor,
-                    },
-                  ]}
-                  onPress={() => selecionarEJogar(index)}
-                  accessibilityLabel={`${item.acaoEspecial ?? item.numero} de cor ${item.cor}`}
-                >
-                  <Text style={styles.cardText}>
-                    {item.acaoEspecial ?? item.numero} ({item.cor})
-                  </Text>
-                </TouchableOpacity>
-              )}
-              style={{ maxHeight: 400 }}
+              keyExtractor={(_, i) => i.toString()}
+              renderItem={renderItem}
+              style={styles.list}
             />
 
             <TouchableOpacity
               style={styles.closeButton}
               onPress={() => setModalVisivel(false)}
             >
-              <Text style={styles.closeButtonText}>Fechar</Text>
+              <Text style={styles.closeButtonText}>{t("Close_btn")}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -121,6 +125,10 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginBottom: 15,
   },
+  list: {
+    maxHeight: 400,
+    width: "100%",
+  },
   cardItem: {
     width: 280,
     padding: 15,
@@ -128,6 +136,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#f0f0f0",
     marginBottom: 10,
     borderRadius: 5,
+  },
+  specialCard: {
+    color: "#333", // Centralizamos a cor do 'especial' aqui no estilo
   },
   cardText: {
     fontSize: 16,

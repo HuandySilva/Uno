@@ -11,6 +11,7 @@ import { useEffect } from "react";
 import "react-native-reanimated";
 
 import { useColorScheme } from "@/hooks/useColorScheme";
+import "../i18n";
 
 SplashScreen.preventAutoHideAsync();
 

@@ -1,5 +1,7 @@
 import { useEffect } from "react";
 import { View, Text, StyleSheet, AccessibilityInfo } from "react-native";
+import { useTranslation } from "react-i18next";
+import { useCardTranslator } from "@/hooks/useCardTranslator";
 
 interface Props {
   cor: string;
@@ -7,8 +9,12 @@ interface Props {
 }
 
 export default function ChosenColorBanner({ cor, onDesaparecer }: Props) {
+  const { t } = useTranslation();
+  const { getColorKey } = useCardTranslator();
+  const corTraduzida = t(`colors.${getColorKey(cor)}`);
+  const mensagem = t("Chosen_color_announce", { color: corTraduzida });
+
   useEffect(() => {
-    const mensagem = `Cor escolhida: ${cor}`;
     AccessibilityInfo.announceForAccessibility(mensagem);
 
     const timer = setTimeout(() => {
@@ -16,11 +22,11 @@ export default function ChosenColorBanner({ cor, onDesaparecer }: Props) {
     }, 3000); // some depois de 3 segundos
 
     return () => clearTimeout(timer);
-  }, [cor]);
+  }, [mensagem]);
 
   return (
     <View style={styles.banner}>
-      <Text style={styles.texto}>Cor escolhida: {cor}</Text>
+      <Text style={styles.texto}>{mensagem}</Text>
     </View>
   );
 }

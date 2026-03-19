@@ -1,11 +1,19 @@
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Platform,
+  Dimensions,
+} from "react-native";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect } from "react";
-import { Platform, Dimensions } from "react-native";
 import * as ScreenOrientation from "expo-screen-orientation";
+import { useTranslation } from "react-i18next";
 
 export default function MyMainScreen() {
+  const { t, i18n } = useTranslation();
   useEffect(() => {
     async function handleOrientation() {
       const { width, height } = Dimensions.get("window");
@@ -31,8 +39,11 @@ export default function MyMainScreen() {
   const router = useRouter();
 
   const irParaJogo = () => {
-    // Navega para a tela do jogo que deve estar em app/GameScreen.tsx
     router.push("/GameScreen");
+  };
+
+  const irParaSettings = () => {
+    router.push("/SettingsScreen");
   };
 
   return (
@@ -41,20 +52,27 @@ export default function MyMainScreen() {
 
       <View style={styles.content}>
         <Text style={styles.title} accessibilityRole="header">
-          UNO Acessível
+          {t("Title")}
         </Text>
 
-        <Text style={styles.subtitle}>
-          Derrote a máquina em uma partida divertida de uno.
-        </Text>
+        <Text style={styles.subtitle}>{t("Welcome")}</Text>
 
         <TouchableOpacity
           style={styles.button}
           onPress={irParaJogo}
-          accessibilityLabel="Iniciar nova partida de UNO"
+          accessibilityLabel={t("Beginning")}
           accessibilityRole="button"
         >
-          <Text style={styles.buttonText}>JOGAR</Text>
+          <Text style={styles.buttonText}>{t("Play_btn")}</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.button, styles.secondaryButton]}
+          onPress={irParaSettings}
+          accessibilityLabel={t("Settings")}
+          accessibilityRole="button"
+        >
+          <Text style={styles.buttonText}>{t("Settings")}</Text>
         </TouchableOpacity>
       </View>
 

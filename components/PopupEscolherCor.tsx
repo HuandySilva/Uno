@@ -8,6 +8,8 @@ import {
   AccessibilityInfo,
   Platform,
 } from "react-native";
+import { useTranslation } from "react-i18next";
+import { useCardTranslator } from "@/hooks/useCardTranslator";
 
 interface Props {
   visivel: boolean;
@@ -20,6 +22,8 @@ export default function EscolherCorDialog({
   onFechar,
   onEscolher,
 }: Props) {
+  const { t } = useTranslation();
+  const { getColorKey } = useCardTranslator();
   const tituloRef = useRef<any>(null);
 
   useEffect(() => {
@@ -32,12 +36,7 @@ export default function EscolherCorDialog({
     }
   }, [visivel]);
 
-  const cores = [
-    { nome: "Vermelho", valor: "vermelho" },
-    { nome: "Azul", valor: "azul" },
-    { nome: "Verde", valor: "verde" },
-    { nome: "Amarelo", valor: "amarelo" },
-  ];
+  const cores = ["vermelho", "azul", "verde", "amarelo"];
 
   return (
     <Modal
@@ -55,24 +54,31 @@ export default function EscolherCorDialog({
             accessible
             accessibilityRole="header"
             {...(Platform.OS === "web" ? { tabIndex: -1 } : {})}
-            accessibilityLabel="Você jogou um coringa. Escolha a cor desejada."
+            accessibilityLabel={t("Wild_card_played_acc")}
           >
-            Você jogou um coringa!
+            {t("Wild_card_played_title")}
           </Text>
 
-          <Text style={styles.subtitulo}>Escolha a cor desejada:</Text>
+          <Text style={styles.subtitulo}>{t("Choose_color_title")}</Text>
 
-          {cores.map((cor) => (
-            <TouchableOpacity
-              key={cor.valor}
-              onPress={() => onEscolher(cor.valor)}
-              style={styles.botaoCor}
-              accessibilityLabel={`Escolher cor ${cor.nome}`}
-              accessibilityRole="button"
-            >
-              <Text style={styles.opcao}>{cor.nome}</Text>
-            </TouchableOpacity>
-          ))}
+          {cores.map((corValor) => {
+            const corChave = getColorKey(corValor);
+            const nomeTraduzido = t(`colors.${corChave}`);
+
+            return (
+              <TouchableOpacity
+                key={corValor}
+                onPress={() => onEscolher(corValor)}
+                style={styles.botaoCor}
+                accessibilityLabel={t("Choose_color_btn_acc", {
+                  color: nomeTraduzido,
+                })}
+                accessibilityRole="button"
+              >
+                <Text style={styles.opcao}>{nomeTraduzido}</Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
       </View>
     </Modal>

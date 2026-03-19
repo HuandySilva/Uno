@@ -1,7 +1,12 @@
 import { registerRootComponent } from "expo";
-import * as AudioFactory from "expo-av"; // Importa como factory
-import { View, Text, StyleSheet, Button, Alert } from "react-native";
-import { AccessibilityInfo } from "react-native";
+import * as AudioFactory from "expo-av";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Button,
+  AccessibilityInfo,
+} from "react-native";
 import { useState, useEffect } from "react";
 import { useUnoGame } from "@/hooks/useUnoGame";
 import HistoricoMesa from "@/components/HistoricoMesa";
@@ -9,11 +14,15 @@ import PopupEscolherCor from "@/components/PopupEscolherCor";
 import ChooseCard from "@/components/ChooseCard";
 import ChosenColorBanner from "@/components/ChosenColorBanner";
 import { playUnoSound } from "../utils/soundUtils";
-import { anunciarCorEscolhida } from "@/utils/announcementUtils";
+import { useTranslation } from "react-i18next";
+import { useCardTranslator } from "@/hooks/useCardTranslator";
+import { useGameAnnouncements } from "@/hooks/useGameAnnouncements";
+import SortingModal from "@/components/SortingModal";
 
 export default function GameScreen() {
   const {
     maoJogador,
+    setMaoJogador,
     maoPC,
     cartaTopo,
     historicoMesa,
@@ -21,19 +30,18 @@ export default function GameScreen() {
     setVezDoJogador,
     jaComprouNoTurno,
     corAtual,
-    baralho,
-    jogoIniciado,
-    setCorAtual, // 👈 Ative aqui quando quiser usar!
+    setCorAtual,
     aguardandoCor,
     setAguardandoCor,
     jogadorDisseUno,
     setJogadorDisseUno,
-    iniciarJogo,
     jogarPorIndice,
-    jogadaDoPC,
     comprar,
-    efeitoEspecial,
   } = useUnoGame();
+
+  const { t } = useTranslation();
+  const { getColorKey, getActionKey } = useCardTranslator();
+  const { anunciarCorEscolhida, anunciarTurno } = useGameAnnouncements();
 
   const [mostrarHistorico, setMostrarHistorico] = useState(false);
   const [mostrarPopup, setMostrarPopup] = useState(false);
@@ -42,7 +50,7 @@ export default function GameScreen() {
   useEffect(() => {
     if (aguardandoCor && vezDoJogador) {
       setMostrarPopup(true);
-      setAguardandoCor(false); // zera pra não repetir
+      setAguardandoCor(false);
     }
   }, [aguardandoCor, vezDoJogador]);
 
@@ -56,61 +64,58 @@ export default function GameScreen() {
   }, [corAtual]);
 
   function escolherCor(cor: string) {
-    setCorAtual(cor); // 👈 Ative isso quando precisar!
+    setCorAtual(cor);
     setMostrarPopup(false);
     setVezDoJogador(false);
   }
 
-  const handleComprar = () => {
-    comprar();
-
-    // Aguarda um pequeno tempo pro estado atualizar
-    setTimeout(() => {}, 200); // 200ms geralmente é suficiente pra esperar o estado atualizar
-  };
-
   const verCartasJogador = () => {
-    const mensagem = `Você tem ${maoJogador.length} cartas.`;
-    setTimeout(() => {
-      AccessibilityInfo.announceForAccessibility(mensagem);
-    }, 1000);
+    AccessibilityInfo.announceForAccessibility(
+      t("My_hand_acc_label", { count: maoJogador.length }),
+    );
   };
 
   const verCartasPC = () => {
-    const mensagem = `O pc tem ${maoPC.length} cartas.`;
-    setTimeout(() => {
-      AccessibilityInfo.announceForAccessibility(mensagem);
-    }, 1000);
+    AccessibilityInfo.announceForAccessibility(
+      t("Announce_draw_other", {
+        name: t("Machine_name"),
+        count: maoPC.length,
+      }),
+    );
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Carta no topo:</Text>
+      <Text style={styles.title}>{t("Top_card_label")}</Text>
+
       {cartaTopo && (
         <Text style={styles.cartaTopo}>
-          {cartaTopo.acaoEspecial ?? cartaTopo.numero} ({cartaTopo.cor})
+          {cartaTopo.acaoEspecial
+            ? t(`actions.${getActionKey(cartaTopo.acaoEspecial)}`)
+            : cartaTopo.numero}{" "}
+          ({t(`colors.${getColorKey(cartaTopo.cor)}`)})
         </Text>
       )}
 
+      <SortingModal maoJogador={maoJogador} setMaoJogador={setMaoJogador} />
       {mostrarBannerCor && (
         <ChosenColorBanner
           cor={corAtual ?? ""}
           onDesaparecer={() => setMostrarBannerCor(false)}
         />
       )}
+
       <ChooseCard maoJogador={maoJogador} jogar={jogarPorIndice} />
 
       {mostrarHistorico && <HistoricoMesa historico={historicoMesa} />}
 
       <Button
-        title={jaComprouNoTurno ? "Já comprou (Passe a vez)" : "Comprar"}
-        onPress={handleComprar}
-        // O botão fica desativado SE:
-        // Não for minha vez OU eu já tiver comprado OU o baralho acabar
-        disabled={!vezDoJogador || jaComprouNoTurno || baralho.length === 0}
+        title={jaComprouNoTurno ? t("Drawn") : t("Draw")}
+        onPress={comprar}
       />
 
-      <Button title="Minhas cartas" onPress={verCartasJogador} />
-      <Button title="Cartas do PC" onPress={verCartasPC} />
+      <Button title={t("Card_count")} onPress={verCartasJogador} />
+      <Button title={t("Machine_card_count")} onPress={verCartasPC} />
 
       <PopupEscolherCor
         visivel={mostrarPopup}
@@ -119,22 +124,27 @@ export default function GameScreen() {
       />
 
       <Button
-        title="Cor escolhida"
-        onPress={() => anunciarCorEscolhida(cartaTopo, corAtual)}
+        title={t("Choosen color")}
+        onPress={() => anunciarCorEscolhida(corAtual ?? "")}
       />
 
       <Button
-        title="Dizer UNO!"
+        title={t("check_turn_btn")}
+        onPress={() => anunciarTurno(vezDoJogador)}
+      />
+
+      <Button
+        title={t("Uno")}
         onPress={() => {
           setJogadorDisseUno(true);
           playUnoSound();
-          AccessibilityInfo.announceForAccessibility("Você disse UNO!");
+          AccessibilityInfo.announceForAccessibility(t("Uno"));
         }}
         disabled={maoJogador.length !== 2 || jogadorDisseUno}
       />
 
       <Button
-        title={mostrarHistorico ? "Ocultar histórico" : "Ver histórico"}
+        title={mostrarHistorico ? t("Hide_history") : t("Show_history")}
         onPress={() => setMostrarHistorico(!mostrarHistorico)}
       />
     </View>
@@ -156,11 +166,5 @@ const styles = StyleSheet.create({
     fontSize: 18,
     marginBottom: 20,
     color: "tomato",
-  },
-  pensando: {
-    fontStyle: "italic",
-    color: "#666",
-    marginTop: 10,
-    fontSize: 16,
   },
 });

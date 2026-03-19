@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, act } from "react";
+import { useState, useEffect, useRef } from "react";
 import { CartaUno } from "../types/CartaUno";
 import { AccessibilityInfo } from "react-native";
 import { useRouter } from "expo-router"; // se você estiver usando expo-router
@@ -18,13 +18,11 @@ import {
   playCardSound,
   playPunishmentSound,
 } from "../utils/soundUtils";
-import {
-  anunciarCarta,
-  anunciarPunicao,
-  anunciarCompra,
-} from "../utils/announcementUtils";
+import { useGameAnnouncements } from "./useGameAnnouncements";
 
 export function useUnoGame() {
+  const { anunciarCarta, anunciarPunicao, anunciarCompra } =
+    useGameAnnouncements();
   const [baralho, setBaralho] = useState<CartaUno[]>([]); // cartas que sobraram no monte
   const [maoJogador, setMaoJogador] = useState<CartaUno[]>([]); // cartas do player
   const [maoPC, setMaoPC] = useState<CartaUno[]>([]); // cartas do computador
@@ -326,6 +324,7 @@ export function useUnoGame() {
 
   return {
     maoJogador,
+    setMaoJogador,
     maoPC,
     baralho,
     cartaTopo,

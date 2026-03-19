@@ -205,3 +205,25 @@ export function temCartaJogavel(
     podeJogar(carta, cartaTopo, corAtual, precisaComprar),
   );
 }
+
+const CORES_ORDEM = ["vermelho", "azul", "verde", "amarelo", "preto"];
+const ACOES_ORDEM = [
+  "pular",
+  "reverso",
+  "comprarDois",
+  "coringa",
+  "comprarQuatro",
+];
+
+// Cria um mapa de valor único para cada carta: (Peso da Cor * 100) + Valor
+// Isso gera um ranking numérico fixo para cada combinação de carta.
+const calcularRank = (carta: CartaUno, prioridade: "cor" | "valor") => {
+  const corIdx = CORES_ORDEM.indexOf(carta.cor || "preto");
+  const valIdx = carta.numero ?? ACOES_ORDEM.indexOf(carta.acaoEspecial!) + 10;
+
+  return prioridade === "cor" ? corIdx * 100 + valIdx : valIdx * 100 + corIdx;
+};
+
+export const ordenarMao = (mao: CartaUno[], tipo: "cor" | "valor") => {
+  return [...mao].sort((a, b) => calcularRank(a, tipo) - calcularRank(b, tipo));
+};
