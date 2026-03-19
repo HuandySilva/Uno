@@ -13,6 +13,7 @@ import HistoricoMesa from "@/components/HistoricoMesa";
 import PopupEscolherCor from "@/components/PopupEscolherCor";
 import ChooseCard from "@/components/ChooseCard";
 import ChosenColorBanner from "@/components/ChosenColorBanner";
+import StatusBoard from "@/components/StatusBoard";
 import { playUnoSound } from "../utils/soundUtils";
 import { useTranslation } from "react-i18next";
 import { useCardTranslator } from "@/hooks/useCardTranslator";
@@ -114,26 +115,12 @@ export default function GameScreen() {
         onPress={comprar}
       />
 
-      <Button title={t("Card_count")} onPress={verCartasJogador} />
-      <Button title={t("Machine_card_count")} onPress={verCartasPC} />
-
       <PopupEscolherCor
         visivel={mostrarPopup}
         onFechar={() => setMostrarPopup(false)}
         onEscolher={escolherCor}
       />
 
-      <Button
-        title={t("Choosen color")}
-        onPress={() => anunciarCorEscolhida(corAtual ?? "")}
-      />
-
-      <Button
-        title={t("check_turn_btn")}
-        onPress={() => anunciarTurno(vezDoJogador)}
-      />
-
-      <Button
         title={t("Uno")}
         onPress={() => {
           setJogadorDisseUno(true);
@@ -146,6 +133,13 @@ export default function GameScreen() {
       <Button
         title={mostrarHistorico ? t("Hide_history") : t("Show_history")}
         onPress={() => setMostrarHistorico(!mostrarHistorico)}
+      />
+
+      <StatusBoard
+        vezDoJogador={vezDoJogador}
+        maoJogadorCount={maoJogador.length}
+        maoPCCount={maoPC.length}
+        corAtual={corAtual}
       />
     </View>
   );
