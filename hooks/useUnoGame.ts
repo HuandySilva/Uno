@@ -19,8 +19,10 @@ import {
   playPunishmentSound,
 } from "../utils/soundUtils";
 import { useGameAnnouncements } from "./useGameAnnouncements";
+import { useSettings } from "../context/SettingsContext";
 
 export function useUnoGame() {
+  const { musicaAtivada, sonsAtivados } = useSettings();
   const { anunciarCarta, anunciarPunicao, anunciarCompra } =
     useGameAnnouncements();
   const [baralho, setBaralho] = useState<CartaUno[]>([]); // cartas que sobraram no monte
@@ -97,7 +99,9 @@ export function useUnoGame() {
 
   useEffect(() => {
     const configurarMusica = async () => {
-      musicaRef.current = await playBackgroundMusic();
+      if (musicaAtivada) {
+        musicaRef.current = await playBackgroundMusic();
+      }
     };
 
     configurarMusica();
@@ -109,7 +113,7 @@ export function useUnoGame() {
         musicaRef.current.unloadAsync();
       }
     };
-  }, []);
+  }, [musicaAtivada]);
 
   useEffect(() => {
     if (
