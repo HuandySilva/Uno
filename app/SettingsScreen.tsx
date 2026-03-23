@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { View, Text, Switch, StyleSheet, Pressable } from "react-native";
 import { useRouter } from "expo-router";
+import LanguageSelector from "@/components/LanguageSelector";
 
 export default function SettingsScreen() {
   const [musicaAtivada, setMusicaAtivada] = useState(true);
@@ -38,6 +39,8 @@ export default function SettingsScreen() {
             }
             value={musicaAtivada}
           />
+
+          <LanguageSelector />
         </View>
       </View>
     </View>

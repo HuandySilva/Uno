@@ -17,42 +17,47 @@ export default function StatusBoard({
 }: StatusBoardProps) {
   const { t } = useTranslation();
 
-  // Monta a string única para o leitor de telas
-  const resumoAcessibilidade = `
-    ${vezDoJogador ? t("Your_turn") : t("Machine_turn")}. 
-    ${t("My_hand_acc_label", { count: maoJogadorCount })}. 
-    ${t("Announce_draw_other", { name: t("Machine_name"), count: maoPCCount })}.
-    ${corAtual ? `${t("Choosen color")}: ${t(`colors.${corAtual}`)}` : ""}
-  `;
-
   return (
-    <View
-      style={styles.container}
-      accessible={true}
-      accessibilityLabel={resumoAcessibilidade}
-      accessibilityLiveRegion="polite"
-    >
+    <View style={styles.container}>
+      {/* Turno: O leitor só lê se o usuário colocar o foco aqui */}
       <Text
         style={[styles.turnText, { color: vezDoJogador ? "green" : "red" }]}
+        accessibilityRole="header"
       >
-        {vezDoJogador ? `👉 ${t("Your_turn")}` : `⌛ ${t("Machine_turn")}`}
+        {vezDoJogador ? `👉 ${t("turn_player")}` : `⌛ ${t("turn_machine")}`}
       </Text>
 
       <View style={styles.row}>
-        <View style={styles.statBox}>
-          <Text style={styles.label}>{t("Player")}</Text>
+        {/* Status do Jogador */}
+        <View
+          style={styles.statBox}
+          accessible={true}
+          accessibilityLabel={`${t("Player_name_you")}: ${maoJogadorCount}`}
+        >
+          <Text style={styles.label}>{t("Player_name_you")}</Text>
           <Text style={styles.value}>{maoJogadorCount}</Text>
         </View>
-        <View style={styles.statBox}>
+
+        {/* Status da Máquina */}
+        <View
+          style={styles.statBox}
+          accessible={true}
+          accessibilityLabel={`${t("Machine_name")}: ${maoPCCount}`}
+        >
           <Text style={styles.label}>{t("Machine_name")}</Text>
           <Text style={styles.value}>{maoPCCount}</Text>
         </View>
       </View>
 
+      {/* Cor Atual: Aparece apenas se houver uma cor escolhida */}
       {corAtual && (
-        <View style={styles.colorIndicator}>
+        <View
+          style={styles.colorIndicator}
+          accessible={true}
+          accessibilityLabel={`${t("Choosen color")}: ${t(`colors.${corAtual}`)}`}
+        >
           <Text style={styles.label}>{t("Choosen color")}: </Text>
-          <Text style={[styles.value, { color: "blue" }]}>
+          <Text style={[styles.value, { color: "#0056b3" }]}>
             {t(`colors.${corAtual}`)}
           </Text>
         </View>
@@ -63,38 +68,52 @@ export default function StatusBoard({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: "#f0f0f0",
+    backgroundColor: "#f9f9f9",
     padding: 15,
-    borderRadius: 10,
+    borderRadius: 12,
     marginVertical: 10,
     width: "90%",
+    alignSelf: "center",
     borderWidth: 1,
     borderColor: "#ddd",
+    elevation: 2, // Sombra leve no Android
+    shadowColor: "#000", // Sombra no iOS
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   turnText: {
     fontSize: 18,
     fontWeight: "bold",
     textAlign: "center",
-    marginBottom: 10,
+    marginBottom: 12,
   },
   row: {
     flexDirection: "row",
     justifyContent: "space-around",
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "#ccc",
+    paddingBottom: 10,
   },
   statBox: {
     alignItems: "center",
+    flex: 1,
   },
   label: {
-    fontSize: 12,
-    color: "#666",
+    fontSize: 13,
+    color: "#555",
+    marginBottom: 4,
+    textTransform: "uppercase",
   },
   value: {
-    fontSize: 16,
+    fontSize: 20,
     fontWeight: "bold",
+    color: "#333",
   },
   colorIndicator: {
-    marginTop: 10,
+    marginTop: 12,
     flexDirection: "row",
     justifyContent: "center",
+    alignItems: "center",
   },
 });

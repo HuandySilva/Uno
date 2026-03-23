@@ -9,7 +9,6 @@ import {
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { CartaUno } from "../types/CartaUno";
-// Verifique se o nome do arquivo é gameHelpers.ts ou gameHelper.ts
 import { ordenarMao } from "../utils/gameHelpers";
 
 interface Props {
@@ -119,7 +118,7 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
+    backgroundColor: "rgba(255,0,0,0.5)",
     justifyContent: "center",
     alignItems: "center",
   },

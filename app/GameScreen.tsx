@@ -121,6 +121,7 @@ export default function GameScreen() {
         onEscolher={escolherCor}
       />
 
+      <Button
         title={t("Uno")}
         onPress={() => {
           setJogadorDisseUno(true);
