@@ -26,7 +26,6 @@ export default function ChooseCard({ maoJogador, jogar }: Props) {
 
     return (
       <TouchableOpacity
-        // A lógica da borda agora usa a cor vinda do utilitário ou o fallback do estilo
         style={[
           styles.cardItem,
           {
@@ -51,6 +50,7 @@ export default function ChooseCard({ maoJogador, jogar }: Props) {
         style={styles.openButton}
         onPress={() => setModalVisivel(true)}
         accessibilityLabel={t("Open_hand_acc")}
+        accessibilityRole="button"
       >
         <Text style={styles.openButtonText}>{t("My_hand_label")}</Text>
       </TouchableOpacity>

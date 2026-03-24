@@ -1,4 +1,3 @@
-import { registerRootComponent } from "expo";
 import * as AudioFactory from "expo-av";
 import {
   View,
@@ -69,21 +68,6 @@ export default function GameScreen() {
     setMostrarPopup(false);
     setVezDoJogador(false);
   }
-
-  const verCartasJogador = () => {
-    AccessibilityInfo.announceForAccessibility(
-      t("My_hand_acc_label", { count: maoJogador.length }),
-    );
-  };
-
-  const verCartasPC = () => {
-    AccessibilityInfo.announceForAccessibility(
-      t("Announce_draw_other", {
-        name: t("Machine_name"),
-        count: maoPC.length,
-      }),
-    );
-  };
 
   return (
     <View style={styles.container}>

@@ -12,6 +12,7 @@
   "Machine_card_count": "How many cards does the machine have?",
   "Choosen color": "Choosen color",
   "Uno": "Uno!",
+  "Invalid_move_announce": "You can't play that card!",
   "check_turn_btn": "Who's turn is it?",
   "turn_player": "It's your turn",
   "turn_machine": "It's the machine's turn",

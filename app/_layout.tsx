@@ -13,6 +13,7 @@ import "react-native-reanimated";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import "../i18n";
 import { SettingsProvider } from "../context/SettingsContext";
+import { t } from "i18next";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -39,7 +40,7 @@ export default function RootLayout() {
           <Stack.Screen name="index" />
           <Stack.Screen
             name="GameScreen"
-            options={{ headerShown: true, title: "Partida" }}
+            options={{ headerShown: true, title: t("Match") }}
           />
           <Stack.Screen name="WinScreen" />
           <Stack.Screen name="LoseScreen" />

@@ -19,10 +19,10 @@ export default function StatusBoard({
 
   return (
     <View style={styles.container}>
-      {/* Turno: O leitor só lê se o usuário colocar o foco aqui */}
       <Text
         style={[styles.turnText, { color: vezDoJogador ? "green" : "red" }]}
         accessibilityRole="header"
+        accessibilityLevel={2}
       >
         {vezDoJogador ? `👉 ${t("turn_player")}` : `⌛ ${t("turn_machine")}`}
       </Text>

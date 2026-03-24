@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from "react";
 import { CartaUno } from "../types/CartaUno";
-import { AccessibilityInfo } from "react-native";
 import { useRouter } from "expo-router"; // se você estiver usando expo-router
 import {
   gerarBaralho,
@@ -21,10 +20,15 @@ import {
 import { useGameAnnouncements } from "./useGameAnnouncements";
 import { useSettings } from "../context/SettingsContext";
 import * as StatsService from "../utils/StatsUtils";
+
 export function useUnoGame() {
   const { musicaAtivada, sonsAtivados } = useSettings();
-  const { anunciarCarta, anunciarPunicao, anunciarCompra } =
-    useGameAnnouncements();
+  const {
+    anunciarCarta,
+    anunciarPunicao,
+    anunciarCompra,
+    anunciarJogadaInvalida,
+  } = useGameAnnouncements();
   const [baralho, setBaralho] = useState<CartaUno[]>([]); // cartas que sobraram no monte
   const [maoJogador, setMaoJogador] = useState<CartaUno[]>([]); // cartas do player
   const [maoPC, setMaoPC] = useState<CartaUno[]>([]); // cartas do computador
@@ -192,9 +196,7 @@ export function useUnoGame() {
         setJaComprouNoTurno(false);
       }
     } else {
-      AccessibilityInfo.announceForAccessibility(
-        "Você não pode jogar essa carta!",
-      );
+      anunciarJogadaInvalida();
     }
   }
 
