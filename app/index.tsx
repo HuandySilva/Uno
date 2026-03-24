@@ -5,19 +5,23 @@ import {
   TouchableOpacity,
   Platform,
   Dimensions,
+  SafeAreaView,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import * as ScreenOrientation from "expo-screen-orientation";
 import { useTranslation } from "react-i18next";
+import OptionsMenu from "@/components/OptionsMenu";
 
 export default function MyMainScreen() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
+  const router = useRouter();
+  const [menuVisivel, setMenuVisivel] = useState(false);
+
   useEffect(() => {
     async function handleOrientation() {
       const { width, height } = Dimensions.get("window");
-      // No Android, tablets geralmente têm a menor largura (window width) > 600dp
       const isTablet =
         Platform.OS === "ios" ? Platform.isPad : Math.min(width, height) >= 600;
 
@@ -30,26 +34,37 @@ export default function MyMainScreen() {
 
     handleOrientation();
 
-    // Quando sair da tela de jogo, libera para o usuário usar como quiser
     return () => {
       ScreenOrientation.unlockAsync();
     };
   }, []);
 
-  const router = useRouter();
-
   const irParaJogo = () => {
     router.push("/GameScreen");
   };
 
-  const irParaSettings = () => {
-    router.push("/SettingsScreen");
+  const handleNavegacao = (rota: string) => {
+    setMenuVisivel(false);
+    router.push(rota as any);
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <StatusBar style="auto" />
 
+      {/* Botão de Menu no topo direito */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.menuTrigger}
+          onPress={() => setMenuVisivel(true)}
+          accessibilityLabel={t("More_options", "Mais opções")}
+          accessibilityRole="button"
+        >
+          <Text style={styles.menuIcon}>⋮</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Conteúdo Centralizado */}
       <View style={styles.content}>
         <Text style={styles.title} accessibilityRole="header">
           {t("Title")}
@@ -58,26 +73,23 @@ export default function MyMainScreen() {
         <Text style={styles.subtitle}>{t("Welcome")}</Text>
 
         <TouchableOpacity
-          style={styles.button}
+          style={styles.playButton}
           onPress={irParaJogo}
           accessibilityLabel={t("Beginning")}
           accessibilityRole="button"
         >
-          <Text style={styles.buttonText}>{t("Play_btn")}</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.button, styles.secondaryButton]}
-          onPress={irParaSettings}
-          accessibilityLabel={t("Settings")}
-          accessibilityRole="button"
-        >
-          <Text style={styles.buttonText}>{t("Settings")}</Text>
+          <Text style={styles.playButtonText}>{t("Play_btn")}</Text>
         </TouchableOpacity>
       </View>
 
+      <OptionsMenu
+        visivel={menuVisivel}
+        onFechar={() => setMenuVisivel(false)}
+        onNavegar={handleNavegacao}
+      />
+
       <Text style={styles.footer}>v1.0.0 - Mobile Core</Text>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -85,14 +97,37 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#f5f5f5",
+  },
+  header: {
+    width: "100%",
+    flexDirection: "row",
+    justifyContent: "flex-end", // Alinha o botão à direita
+    paddingHorizontal: 20,
+    paddingTop: Platform.OS === "android" ? 40 : 10, // Ajuste para status bar no Android
+  },
+  menuTrigger: {
+    width: 50,
+    height: 50,
     justifyContent: "center",
     alignItems: "center",
-    padding: 20,
+    backgroundColor: "#fff",
+    borderRadius: 25,
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  menuIcon: {
+    fontSize: 24,
+    color: "#007AFF",
+    fontWeight: "bold",
   },
   content: {
-    width: "100%",
+    flex: 1, // Faz o conteúdo ocupar o resto da tela
+    justifyContent: "center", // Centraliza verticalmente
     alignItems: "center",
-    gap: 20,
+    paddingBottom: 60, // Compensa visualmente o espaço do footer
   },
   title: {
     fontSize: 32,
@@ -104,28 +139,30 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#666",
     textAlign: "center",
-    marginBottom: 20,
+    marginBottom: 40,
   },
-  button: {
+  playButton: {
     backgroundColor: "#007AFF",
-    paddingVertical: 15,
-    paddingHorizontal: 60,
-    borderRadius: 12,
-    elevation: 3, // Sombra no Android
-    shadowColor: "#000", // Sombra no iOS
-    shadowOffset: { width: 0, height: 2 },
+    paddingVertical: 18,
+    paddingHorizontal: 80,
+    borderRadius: 15,
+    elevation: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
-    shadowRadius: 4,
+    shadowRadius: 6,
   },
-  buttonText: {
+  playButtonText: {
     color: "#fff",
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: "bold",
     letterSpacing: 1.2,
   },
   footer: {
     position: "absolute",
-    bottom: 40,
+    bottom: 20,
+    width: "100%",
+    textAlign: "center",
     fontSize: 12,
     color: "#999",
   },

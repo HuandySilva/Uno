@@ -20,7 +20,7 @@ import {
 } from "../utils/soundUtils";
 import { useGameAnnouncements } from "./useGameAnnouncements";
 import { useSettings } from "../context/SettingsContext";
-
+import * as StatsService from "../utils/StatsUtils";
 export function useUnoGame() {
   const { musicaAtivada, sonsAtivados } = useSettings();
   const { anunciarCarta, anunciarPunicao, anunciarCompra } =
@@ -40,6 +40,9 @@ export function useUnoGame() {
   const precisaComprar = useRef(false);
   const musicaRef = useRef<any>(null);
   const [jaComprouNoTurno, setJaComprouNoTurno] = useState(false);
+  const startTime = useRef<number>(Date.now());
+  const totalDrawnInMatch = useRef<number>(0);
+  const finalizouRef = useRef(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -51,20 +54,34 @@ export function useUnoGame() {
       }
     };
 
-    if (jogoIniciado) {
+    if (jogoIniciado && !finalizouRef.current) {
+      const matchDuration = Math.floor((Date.now() - startTime.current) / 1000);
       if (
         maoJogador.length === 0 ||
         maoPC.length === 0 ||
         (baralho.length === 0 && !alguemPodeJogar())
       ) {
-        pararMusica(); // Para a música antes de navegar
+        pararMusica();
 
         if (maoJogador.length === 0 && maoPC.length > 0) {
+          StatsService.saveMatchResult(
+            true,
+            matchDuration,
+            totalDrawnInMatch.current,
+          );
           router.replace("/WinScreen");
+          finalizouRef.current = true;
         } else if (maoPC.length === 0 && maoJogador.length > 0) {
+          StatsService.saveMatchResult(
+            false,
+            matchDuration,
+            totalDrawnInMatch.current,
+          );
           router.replace("/LoseScreen");
+          finalizouRef.current = true;
         } else {
           router.replace("/DrawScreen");
+          finalizouRef.current = true;
         }
       }
     }
@@ -134,6 +151,9 @@ export function useUnoGame() {
   }, [cartaTopo]);
 
   function iniciarJogo() {
+    finalizouRef.current = false;
+    startTime.current = Date.now();
+    totalDrawnInMatch.current = 0;
     let baralho = gerarBaralho();
 
     do {
@@ -151,7 +171,6 @@ export function useUnoGame() {
   }
 
   function jogarPorIndice(indice: number) {
-    console.log("jogada do jogador ja comprou no turno: ", jaComprouNoTurno);
     const carta = maoJogador[indice];
     if (podeJogar(carta, cartaTopo, corAtual, precisaComprar.current)) {
       if (cartaTopo) {
@@ -161,6 +180,7 @@ export function useUnoGame() {
       setMaoJogador((prev) => prev.filter((_, i) => i !== indice));
       playCardSound(carta);
       anunciarCarta(carta, "jogador");
+      StatsService.trackCardPlay(!!carta.acaoEspecial);
       if (
         carta.acaoEspecial === "coringa" ||
         carta.acaoEspecial === "comprarQuatro"
@@ -235,20 +255,16 @@ export function useUnoGame() {
 
     if (baralho.length === 0) {
       reembaralharHistorico();
-      //console.log("Histórico foi embaralhado.");
     }
 
     const novoBaralho = [...baralho];
-    //console.log("novo baralho", novoBaralho);
     const quantidade = quantosComprar(
       cartaTopo,
       punicaoPorNaoDizerUno.current,
       precisaComprar.current,
       historicoMesa,
     );
-    //console.log("Número de cartas a comprar:", quantidade);
     const compradas: CartaUno[] = [];
-    //console.log(`compradas esta vazio: ${compradas.length === 0}`);
     let i = 0;
     while (novoBaralho.length > 0 && i < quantidade) {
       const carta = novoBaralho.pop();
@@ -256,7 +272,6 @@ export function useUnoGame() {
       i++;
     }
 
-    //console.log("medida do compradas:", compradas.length);
     setBaralho(novoBaralho);
 
     playDrawSound();
@@ -270,9 +285,6 @@ export function useUnoGame() {
         ) {
           setVezDoJogador(false);
           setJaComprouNoTurno(false);
-
-          //console.log("Caiu no if onde não tem carta jogável");
-          //console.log("observer o vez do jogador", vezDoJogador);
         }
 
         return novaMao;
@@ -280,6 +292,7 @@ export function useUnoGame() {
 
       anunciarCompra("jogador", quantidade);
       setJogadorDisseUno(false);
+      totalDrawnInMatch.current += quantidade;
     } else {
       setMaoPC((prev) => {
         const novaMao = [...prev, ...compradas];
