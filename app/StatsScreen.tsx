@@ -12,15 +12,14 @@ import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useTranslation } from "react-i18next";
 import * as ScreenOrientation from "expo-screen-orientation";
-import { getStats } from "../utils/StatsUtils";
+import { getStats, GameStats } from "../utils/StatsUtils";
 
 export default function StatsScreen() {
   const { t } = useTranslation();
   const router = useRouter();
-  const [stats, setStats] = useState<any>(null);
+  const [stats, setStats] = useState<GameStats | null>(null);
 
   useEffect(() => {
-    // Mantém a orientação baseada no dispositivo (Tablet = Landscape)
     async function handleOrientation() {
       const { width, height } = Dimensions.get("window");
       const isTablet =
@@ -44,21 +43,21 @@ export default function StatsScreen() {
     };
   }, []);
 
-  // Formatação robusta para o leitor de telas e visual
   const formatTime = (seconds: number | null) => {
     if (!seconds || seconds === 0) return t("No_record");
-
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
-
     if (m === 0) return `${s} ${t("Seconds_label")}`;
-    // Ex: "2 minutos e 15 segundos"
-    return `${m} ${t("Minutes_label")} ${t("and", "e")} ${s} ${t("Seconds_label")}`;
+    return `${m} ${t("Minutes_label")} ${t("and")} ${s} ${t("Seconds_label")}`;
   };
 
-  const StatRow = ({ label, value, isTime = false }: any) => {
+  const StatRow = ({
+    label,
+    value,
+    isTime = false,
+    color = "#007AFF",
+  }: any) => {
     const displayValue = isTime ? formatTime(value) : (value ?? 0);
-
     return (
       <View
         style={styles.statRow}
@@ -66,7 +65,7 @@ export default function StatsScreen() {
         accessibilityLabel={`${label}: ${displayValue}`}
       >
         <Text style={styles.statLabel}>{label}</Text>
-        <Text style={styles.statValue}>{displayValue}</Text>
+        <Text style={[styles.statValue, { color }]}>{displayValue}</Text>
       </View>
     );
   };
@@ -83,31 +82,60 @@ export default function StatsScreen() {
 
           {stats ? (
             <View style={styles.statsCard}>
+              <Text style={styles.sectionTitle}>{t("General_Summary")}</Text>
               <StatRow label={t("Games_played")} value={stats.gamesPlayed} />
-              <StatRow label={t("Wins")} value={stats.wins} />
-              <StatRow label={t("Losses")} value={stats.losses} />
-
-              <View style={styles.divider} />
-
+              <StatRow label={t("Wins")} value={stats.wins} color="#28a745" />
               <StatRow
-                label={t("Total_cards_drawn")}
-                value={stats.totalCardsDrawn}
+                label={t("Losses")}
+                value={stats.losses}
+                color="#dc3545"
               />
 
               <View style={styles.divider} />
 
+              <Text style={styles.sectionTitle}>{t("Points_and_Glory")}</Text>
+              <StatRow
+                label={t("Total_points_won")}
+                value={stats.totalPoints}
+                color="#28a745"
+              />
+              <StatRow
+                label={t("Max_points_win")}
+                value={stats.maxPointsInWin}
+                color="#28a745"
+              />
+
+              <View style={styles.divider} />
+
+              <Text style={styles.sectionTitle}>{t("Defeat_Impact")}</Text>
+              <StatRow
+                label={t("Total_points_lost")}
+                value={stats.totalPointsLost}
+                color="#dc3545"
+              />
+              <StatRow
+                label={t("Max_points_loss")}
+                value={stats.maxPointsInLoss}
+                color="#dc3545"
+              />
+
+              <View style={styles.divider} />
+
+              <Text style={styles.sectionTitle}>{t("Records_and_Time")}</Text>
+              <StatRow
+                label={t("Total_cards_drawn")}
+                value={stats.totalCardsDrawn}
+              />
               <StatRow
                 label={t("Longest_match")}
                 value={stats.longestMatch}
                 isTime={true}
               />
-
               <StatRow
                 label={t("Shortest_win")}
                 value={stats.shortestWin}
                 isTime={true}
               />
-
               <StatRow
                 label={t("Total_time")}
                 value={stats.totalPlayTime}
@@ -129,7 +157,7 @@ export default function StatsScreen() {
         </View>
       </ScrollView>
 
-      <Text style={styles.footer}>v1.0.0 - Mobile Core</Text>
+      <Text style={styles.footer}>v1.1.0 - Score System Active</Text>
     </View>
   );
 }
@@ -157,13 +185,22 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 10,
   },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#666",
+    marginTop: 10,
+    marginBottom: 5,
+    textTransform: "uppercase",
+    letterSpacing: 1,
+  },
   subtitle: {
     fontSize: 16,
     color: "#666",
   },
   statsCard: {
     width: "100%",
-    maxWidth: 500, // Bom para não esticar demais no Tab A9+
+    maxWidth: 500,
     backgroundColor: "#fff",
     borderRadius: 16,
     padding: 20,
@@ -177,25 +214,24 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 12,
+    paddingVertical: 10,
   },
   statLabel: {
     fontSize: 16,
     color: "#444",
     fontWeight: "500",
-    flex: 1,
+    flex: 1.5,
   },
   statValue: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#007AFF",
     textAlign: "right",
     flex: 1,
   },
   divider: {
     height: 1,
     backgroundColor: "#eee",
-    marginVertical: 8,
+    marginVertical: 12,
   },
   button: {
     backgroundColor: "#007AFF",

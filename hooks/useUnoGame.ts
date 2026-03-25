@@ -16,10 +16,12 @@ import {
   playShuffleSound,
   playCardSound,
   playPunishmentSound,
+  playUnoSound,
 } from "../utils/soundUtils";
 import { useGameAnnouncements } from "./useGameAnnouncements";
 import { useSettings } from "../context/SettingsContext";
 import * as StatsService from "../utils/StatsUtils";
+import { Accelerometer } from "expo-sensors";
 
 export function useUnoGame() {
   const { musicaAtivada, sonsAtivados } = useSettings();
@@ -28,6 +30,7 @@ export function useUnoGame() {
     anunciarPunicao,
     anunciarCompra,
     anunciarJogadaInvalida,
+    announce,
   } = useGameAnnouncements();
   const [baralho, setBaralho] = useState<CartaUno[]>([]); // cartas que sobraram no monte
   const [maoJogador, setMaoJogador] = useState<CartaUno[]>([]); // cartas do player
@@ -47,6 +50,8 @@ export function useUnoGame() {
   const startTime = useRef<number>(Date.now());
   const totalDrawnInMatch = useRef<number>(0);
   const finalizouRef = useRef(false);
+  const [aguardandoUno, setAguardandoUno] = useState(false);
+  const timerUnoRef = useRef<NodeJS.Timeout | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -68,21 +73,25 @@ export function useUnoGame() {
         pararMusica();
 
         if (maoJogador.length === 0 && maoPC.length > 0) {
+          const pontosGanhos = calcularPontos(maoPC);
           StatsService.saveMatchResult(
             true,
             matchDuration,
             totalDrawnInMatch.current,
+            pontosGanhos,
           );
-          router.replace("/WinScreen");
           finalizouRef.current = true;
+          router.replace("/WinScreen");
         } else if (maoPC.length === 0 && maoJogador.length > 0) {
+          const pontosPerdidos = calcularPontos(maoJogador);
           StatsService.saveMatchResult(
             false,
             matchDuration,
             totalDrawnInMatch.current,
+            pontosPerdidos,
           );
-          router.replace("/LoseScreen");
           finalizouRef.current = true;
+          router.replace("/LoseScreen");
         } else {
           router.replace("/DrawScreen");
           finalizouRef.current = true;
@@ -92,22 +101,32 @@ export function useUnoGame() {
   }, [maoJogador.length, maoPC.length, baralho.length]);
 
   useEffect(() => {
-    if (!jogoIniciado) return;
+    let subscription: any;
 
-    // Punição do jogador
-    if (maoJogador.length === 1 && !jogadorDisseUno) {
-      playPunishmentSound();
-      punicaoPorNaoDizerUno.current = true;
-      precisaComprar.current = true;
-      anunciarPunicao("jogador");
+    // Só ativa o sensor se o jogador estiver na janela de 5 segundos do Uno
+    if (aguardandoUno) {
+      // 100ms de intervalo é o ideal para não drenar bateria e ser rápido
+      Accelerometer.setUpdateInterval(100);
+
+      subscription = Accelerometer.addListener(({ x, y, z }) => {
+        // Calculamos a força total do movimento (vetor)
+        const force = Math.sqrt(x * x + y * y + z * z);
+
+        // 1.8 ou 2.0 costuma ser um "shake" intencional.
+        // Se o usuário só mexer a mão de leve, não dispara.
+        if (force > 1.8) {
+          finalizarJanelaUno(true); // Sucesso! Ele balançou a tempo.
+        }
+      });
     }
 
-    // (Opcional) Punição do PC
-    if (maoPC.length === 1 && !pcDisseUno) {
-      punicaoPorNaoDizerUno.current = true;
-      anunciarPunicao("pc");
-    }
-  }, [maoJogador.length, maoPC.length]);
+    // Limpeza: desliga o sensor quando a janela fecha ou o componente morre
+    return () => {
+      if (subscription) {
+        subscription.remove();
+      }
+    };
+  }, [aguardandoUno]);
 
   useEffect(() => {
     if (!vezDoJogador) {
@@ -154,6 +173,50 @@ export function useUnoGame() {
     }
   }, [cartaTopo]);
 
+  function aplicarPunicaoUno() {
+    playPunishmentSound();
+    anunciarPunicao("jogador");
+
+    // Ativa a lógica de compra com punição
+    punicaoPorNaoDizerUno.current = true;
+    precisaComprar.current = true;
+
+    // Chama sua função de compra existente
+    comprar();
+
+    punicaoPorNaoDizerUno.current = false;
+    precisaComprar.current = false;
+  }
+
+  function finalizarJanelaUno(disseUno: boolean) {
+    if (timerUnoRef.current) {
+      clearTimeout(timerUnoRef.current);
+      timerUnoRef.current = null;
+    }
+
+    setAguardandoUno(false);
+
+    if (disseUno) {
+      setJogadorDisseUno(true);
+      playUnoSound();
+      // Feedback opcional para o leitor de tela
+      announce("Uno registrado com sucesso!");
+    } else {
+      aplicarPunicaoUno();
+    }
+  }
+
+  function iniciarJanelaUno() {
+    if (timerUnoRef.current) clearTimeout(timerUnoRef.current);
+
+    setAguardandoUno(true);
+    setJogadorDisseUno(false);
+
+    // Agora com 5 segundos (5000ms)
+    timerUnoRef.current = setTimeout(() => {
+      finalizarJanelaUno(false);
+    }, 5000);
+  }
   function iniciarJogo() {
     finalizouRef.current = false;
     startTime.current = Date.now();
@@ -176,15 +239,30 @@ export function useUnoGame() {
 
   function jogarPorIndice(indice: number) {
     const carta = maoJogador[indice];
+
+    // 1. Verificação de jogada válida
     if (podeJogar(carta, cartaTopo, corAtual, precisaComprar.current)) {
       if (cartaTopo) {
         setHistoricoMesa((prev) => [...prev, cartaTopo]);
       }
+
       setCartaTopo(carta);
-      setMaoJogador((prev) => prev.filter((_, i) => i !== indice));
+
+      setMaoJogador((prev) => {
+        const novaMao = prev.filter((_, i) => i !== indice);
+
+        // Lógica do UNO: se restar 1 carta, inicia a janela de 5 segundos
+        if (novaMao.length === 1) {
+          iniciarJanelaUno();
+        }
+        return novaMao;
+      });
+
+      // Movido para fora do setMaoJogador para evitar efeitos colaterais
       playCardSound(carta);
       anunciarCarta(carta, "jogador");
       StatsService.trackCardPlay(!!carta.acaoEspecial);
+
       if (
         carta.acaoEspecial === "coringa" ||
         carta.acaoEspecial === "comprarQuatro"
@@ -196,6 +274,7 @@ export function useUnoGame() {
         setJaComprouNoTurno(false);
       }
     } else {
+      // Se a carta não for jogável
       anunciarJogadaInvalida();
     }
   }

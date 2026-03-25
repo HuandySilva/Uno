@@ -11,7 +11,11 @@ export interface GameStats {
   totalCardsDrawn: number; // Quantas comprou no total
   totalPlayTime: number; // Tempo total em segundos
   shortestWin: number | null; // Recorde: vitória mais rápida (em segundos)
-  longestMatch: number; // Recorde: partida mais longa (em segundos)
+  longestMatch: number; // Recorde: partida mais longa (em segundos),
+  totalPoints: number;
+  maxPointsInWin: number;
+  totalPointsLost: number; // Soma de pontos que ficaram na sua mão quando o PC ganhou
+  maxPointsInLoss: number; // O maior "prejuízo" que você já teve em uma derrota
 }
 
 const INITIAL_STATS: GameStats = {
@@ -24,6 +28,10 @@ const INITIAL_STATS: GameStats = {
   totalPlayTime: 0,
   shortestWin: null,
   longestMatch: 0,
+  totalPoints: 0,
+  maxPointsInWin: 0,
+  totalPointsLost: 0,
+  maxPointsInLoss: 0,
 };
 
 export const getStats = async (): Promise<GameStats> => {
@@ -35,6 +43,7 @@ export const saveMatchResult = async (
   win: boolean,
   durationSeconds: number,
   cardsDrawn: number,
+  points: number = 0,
 ) => {
   const current = await getStats();
   const updated: GameStats = {
@@ -44,6 +53,19 @@ export const saveMatchResult = async (
     losses: !win ? current.losses + 1 : current.losses,
     totalPlayTime: current.totalPlayTime + durationSeconds,
     totalCardsDrawn: current.totalCardsDrawn + cardsDrawn,
+
+    // Lógica de Pontos Ganhos (Vitória)
+    totalPoints: current.totalPoints + (win ? points : 0),
+    maxPointsInWin: win
+      ? Math.max(current.maxPointsInWin, points)
+      : current.maxPointsInWin,
+
+    // Lógica de Pontos Perdidos (Derrota) - NOVO!
+    totalPointsLost: current.totalPointsLost + (!win ? points : 0),
+    maxPointsInLoss: !win
+      ? Math.max(current.maxPointsInLoss, points)
+      : current.maxPointsInLoss,
+
     longestMatch: Math.max(current.longestMatch, durationSeconds),
     shortestWin: win
       ? current.shortestWin
