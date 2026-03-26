@@ -13,10 +13,10 @@ import { ordenarMao } from "../utils/gameHelpers";
 
 interface Props {
   maoJogador: CartaUno[];
-  setMaoJogador: (novaMao: CartaUno[]) => void;
+  dispatch: (action: any) => void;
 }
 
-export default function SortingModal({ maoJogador, setMaoJogador }: Props) {
+export default function SortingModal({ maoJogador, dispatch }: Props) {
   const [modalVisivel, setModalVisivel] = useState(false);
   const [opcaoSelecionada, setOpcaoSelecionada] = useState<
     "cor" | "valor" | null
@@ -26,10 +26,9 @@ export default function SortingModal({ maoJogador, setMaoJogador }: Props) {
   const handleSelect = (tipo: "cor" | "valor") => {
     setOpcaoSelecionada(tipo);
 
-    const maoOrdenada = ordenarMao(maoJogador, tipo);
-    setMaoJogador(maoOrdenada);
+    // Agora enviamos a intenção para o Reducer
+    dispatch({ type: "ORDENAR_MAO", payload: { tipo } });
 
-    // Feedback de acessibilidade curto
     const feedback =
       tipo === "cor" ? t("Sort_feedback_color") : t("Sort_feedback_value");
     AccessibilityInfo.announceForAccessibility(feedback);

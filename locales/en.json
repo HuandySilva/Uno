@@ -71,6 +71,11 @@
   "Records_and_Time": "Records & Time",
   "Victories_Stats": "Victory Statistics",
   "Losses_Stats": "Loss Statistics",
+  "quit_title": "Quit match?",
+  "quit_message": "Your progress in this match will be lost. Are you sure?",
+  "quit_confirm": "Quit",
+  "quit_cancel": "Keep playing",
+  "quit_announce": "Match ended. Returning to main menu.",
   "colors": {
     "red": "Red",
     "blue": "Blue",

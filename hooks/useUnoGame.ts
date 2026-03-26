@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useReducer } from "react";
 import { CartaUno } from "../types/CartaUno";
 import { useRouter } from "expo-router"; // se você estiver usando expo-router
 import {
@@ -10,21 +10,31 @@ import {
   quantosComprar,
   temCartaJogavel,
 } from "../utils/gameHelpers";
-import {
-  playBackgroundMusic,
-  playDrawSound,
-  playShuffleSound,
-  playCardSound,
-  playPunishmentSound,
-  playUnoSound,
-} from "../utils/soundUtils";
 import { useGameAnnouncements } from "./useGameAnnouncements";
-import { useSettings } from "../context/SettingsContext";
 import * as StatsService from "../utils/StatsUtils";
-import { Accelerometer } from "expo-sensors";
+import { useShakeDetector } from "./useShakeDetector";
+import { useUnoAudio } from "./useUnoAudio";
+import { unoReducer } from "./unoReducer";
+import { UnoState } from "@/types/UnoState";
+
+const initialState: UnoState = {
+  baralho: [],
+  maoJogador: [],
+  maoPC: [],
+  cartaTopo: null,
+  historicoMesa: [],
+  vezDoJogador: true,
+  corAtual: null,
+  precisaComprar: false,
+  jaComprouNoTurno: false,
+  status: "INICIO",
+  aguardandoUno: false,
+  jogadorDisseUno: false,
+  pcDisseUno: false,
+};
 
 export function useUnoGame() {
-  const { musicaAtivada, sonsAtivados } = useSettings();
+  const { tocarSom } = useUnoAudio();
   const {
     anunciarCarta,
     anunciarPunicao,
@@ -32,101 +42,68 @@ export function useUnoGame() {
     anunciarJogadaInvalida,
     announce,
   } = useGameAnnouncements();
-  const [baralho, setBaralho] = useState<CartaUno[]>([]); // cartas que sobraram no monte
-  const [maoJogador, setMaoJogador] = useState<CartaUno[]>([]); // cartas do player
-  const [maoPC, setMaoPC] = useState<CartaUno[]>([]); // cartas do computador
-  const [cartaTopo, setCartaTopo] = useState<CartaUno | null>(null); // carta atual
-  const [vezDoJogador, setVezDoJogador] = useState<boolean>(true); // de quem é a vez
-  const [historicoMesa, setHistoricoMesa] = useState<CartaUno[]>([]); // historico de cartas jogadas
-  const [corAtual, setCorAtual] = useState<string | null>(null);
-  const [jogoIniciado, setJogoIniciado] = useState(false);
-  const [aguardandoCor, setAguardandoCor] = useState(false);
-  const [jogadorDisseUno, setJogadorDisseUno] = useState(false);
-  const [pcDisseUno, setPcDisseUno] = useState(false);
-  const punicaoPorNaoDizerUno = useRef(false);
-  const precisaComprar = useRef(false);
-  const musicaRef = useRef<any>(null);
-  const [jaComprouNoTurno, setJaComprouNoTurno] = useState(false);
   const startTime = useRef<number>(Date.now());
   const totalDrawnInMatch = useRef<number>(0);
-  const finalizouRef = useRef(false);
-  const [aguardandoUno, setAguardandoUno] = useState(false);
   const timerUnoRef = useRef<NodeJS.Timeout | null>(null);
+  const finalizouRef = useRef(false);
   const router = useRouter();
+  const [state, dispatch] = useReducer(unoReducer, initialState);
+  const {
+    baralho,
+    maoJogador,
+    maoPC,
+    status,
+    cartaTopo,
+    vezDoJogador,
+    historicoMesa,
+    corAtual,
+    jaComprouNoTurno,
+    precisaComprar,
+    aguardandoUno,
+    jogadorDisseUno,
+  } = state;
+
+  useShakeDetector(
+    () => finalizarJanelaUno(true), // O que fazer quando balançar
+    aguardandoUno, // Só ativa quando estiver no modo "Aguardando Uno"
+  );
 
   useEffect(() => {
-    const pararMusica = async () => {
-      if (musicaRef.current) {
-        await musicaRef.current.stopAsync();
-        await musicaRef.current.unloadAsync();
-        musicaRef.current = null;
-      }
-    };
-
-    if (jogoIniciado && !finalizouRef.current) {
+    // 1. O Juiz só olha o placar se a bola estiver rolando
+    if (status === "JOGANDO" && !finalizouRef.current) {
       const matchDuration = Math.floor((Date.now() - startTime.current) / 1000);
-      if (
-        maoJogador.length === 0 ||
-        maoPC.length === 0 ||
-        (baralho.length === 0 && !alguemPodeJogar())
-      ) {
-        pararMusica();
 
-        if (maoJogador.length === 0 && maoPC.length > 0) {
-          const pontosGanhos = calcularPontos(maoPC);
-          StatsService.saveMatchResult(
-            true,
-            matchDuration,
-            totalDrawnInMatch.current,
-            pontosGanhos,
-          );
-          finalizouRef.current = true;
-          router.replace("/WinScreen");
-        } else if (maoPC.length === 0 && maoJogador.length > 0) {
-          const pontosPerdidos = calcularPontos(maoJogador);
-          StatsService.saveMatchResult(
-            false,
-            matchDuration,
-            totalDrawnInMatch.current,
-            pontosPerdidos,
-          );
-          finalizouRef.current = true;
-          router.replace("/LoseScreen");
-        } else {
-          router.replace("/DrawScreen");
-          finalizouRef.current = true;
-        }
+      // Condição A: Jogador venceu
+      if (maoJogador.length === 0) {
+        finalizarPartida(true, matchDuration, "/WinScreen");
+        return; // Para a execução aqui
       }
-    }
-  }, [maoJogador.length, maoPC.length, baralho.length]);
 
-  useEffect(() => {
-    let subscription: any;
-
-    // Só ativa o sensor se o jogador estiver na janela de 5 segundos do Uno
-    if (aguardandoUno) {
-      // 100ms de intervalo é o ideal para não drenar bateria e ser rápido
-      Accelerometer.setUpdateInterval(100);
-
-      subscription = Accelerometer.addListener(({ x, y, z }) => {
-        // Calculamos a força total do movimento (vetor)
-        const force = Math.sqrt(x * x + y * y + z * z);
-
-        // 1.8 ou 2.0 costuma ser um "shake" intencional.
-        // Se o usuário só mexer a mão de leve, não dispara.
-        if (force > 1.8) {
-          finalizarJanelaUno(true); // Sucesso! Ele balançou a tempo.
-        }
-      });
-    }
-
-    // Limpeza: desliga o sensor quando a janela fecha ou o componente morre
-    return () => {
-      if (subscription) {
-        subscription.remove();
+      // Condição B: PC venceu
+      if (maoPC.length === 0) {
+        finalizarPartida(false, matchDuration, "/LoseScreen");
+        return;
       }
-    };
-  }, [aguardandoUno]);
+
+      // O empate foi removido. Se o baralho chegar a 0,
+      // a sua função 'comprar' já chama o 'reembaralharHistorico'.
+    }
+  }, [maoJogador.length, maoPC.length, status]);
+
+  function finalizarPartida(venceu: boolean, duracao: number, rota: any) {
+    const pontos = calcularPontos(venceu ? maoPC : maoJogador);
+
+    StatsService.saveMatchResult(
+      venceu,
+      duracao,
+      totalDrawnInMatch.current,
+      pontos,
+    );
+
+    finalizouRef.current = true;
+    tocarSom("ending", venceu ? "winner" : "loser"); // Som de vitória/derrota antes de sair
+    router.replace(rota);
+  }
 
   useEffect(() => {
     if (!vezDoJogador) {
@@ -138,154 +115,123 @@ export function useUnoGame() {
   }, [vezDoJogador, maoPC.length]);
 
   useEffect(() => {
-    const configurarMusica = async () => {
-      if (musicaAtivada) {
-        musicaRef.current = await playBackgroundMusic();
-      }
-    };
-
-    configurarMusica();
     iniciarJogo();
-
-    return () => {
-      if (musicaRef.current) {
-        musicaRef.current.stopAsync();
-        musicaRef.current.unloadAsync();
-      }
-    };
-  }, [musicaAtivada]);
-
-  useEffect(() => {
-    if (
-      cartaTopo?.acaoEspecial === "comprarDois" ||
-      cartaTopo?.acaoEspecial == "comprarQuatro"
-    ) {
-      precisaComprar.current = true;
-    }
-  }, [cartaTopo]);
-
-  useEffect(() => {
-    if (
-      cartaTopo?.acaoEspecial === "pular" ||
-      cartaTopo?.acaoEspecial === "reverso"
-    ) {
-      efeitoEspecial();
-    }
-  }, [cartaTopo]);
+  }, []);
 
   function aplicarPunicaoUno() {
-    playPunishmentSound();
+    tocarSom("punishment");
     anunciarPunicao("jogador");
 
-    // Ativa a lógica de compra com punição
-    punicaoPorNaoDizerUno.current = true;
-    precisaComprar.current = true;
+    const cartasPunicao = baralho.slice(-2);
 
-    // Chama sua função de compra existente
-    comprar();
+    dispatch({
+      type: "COMPRAR_CARTAS",
+      payload: {
+        cartas: cartasPunicao,
+        paraQuem: "jogador",
+      },
+    });
 
-    punicaoPorNaoDizerUno.current = false;
-    precisaComprar.current = false;
+    dispatch({ type: "SET_AGUARDANDO_UNO", payload: false });
   }
 
   function finalizarJanelaUno(disseUno: boolean) {
+    // 1. Limpa o timer (isso continua sendo via Ref, pois é um recurso do sistema)
     if (timerUnoRef.current) {
       clearTimeout(timerUnoRef.current);
       timerUnoRef.current = null;
     }
 
-    setAguardandoUno(false);
+    // 2. Avisa ao Reducer que a janela fechou
+    dispatch({ type: "SET_AGUARDANDO_UNO", payload: false });
 
     if (disseUno) {
-      setJogadorDisseUno(true);
-      playUnoSound();
-      // Feedback opcional para o leitor de tela
+      // 3. Sucesso: O jogador foi rápido o suficiente
+      dispatch({ type: "SET_UNO", payload: { quem: "jogador", valor: true } });
+
+      tocarSom("uno");
       announce("Uno registrado com sucesso!");
     } else {
+      // 4. Falha: O tempo acabou ou ele esqueceu
       aplicarPunicaoUno();
     }
   }
 
   function iniciarJanelaUno() {
+    // 1. Limpa qualquer timer anterior (segurança)
     if (timerUnoRef.current) clearTimeout(timerUnoRef.current);
 
-    setAguardandoUno(true);
-    setJogadorDisseUno(false);
+    dispatch({ type: "SET_AGUARDANDO_UNO", payload: true });
+    dispatch({ type: "SET_UNO", payload: { quem: "jogador", valor: false } });
 
-    // Agora com 5 segundos (5000ms)
     timerUnoRef.current = setTimeout(() => {
-      finalizarJanelaUno(false);
+      finalizarJanelaUno(false); // Se o tempo acabar, chama a punição
     }, 5000);
   }
+
   function iniciarJogo() {
     finalizouRef.current = false;
     startTime.current = Date.now();
     totalDrawnInMatch.current = 0;
-    let baralho = gerarBaralho();
 
+    let novoBaralho = gerarBaralho();
     do {
-      baralho = shuffle(baralho);
-    } while (baralho[baralho.length - 1].acaoEspecial);
-    playShuffleSound();
-    const vezDoJogador = Math.random() < 0.5;
-    setCartaTopo(baralho.pop() || null); // pega a última carta do baralho
+      novoBaralho = shuffle(novoBaralho);
+    } while (novoBaralho[novoBaralho.length - 1].acaoEspecial);
 
-    setMaoJogador(baralho.splice(0, 7)); // pega 7 do começo
-    setMaoPC(baralho.splice(0, 7)); // pega mais 7
-    setBaralho(baralho); // o resto é o monte
-    setVezDoJogador(vezDoJogador);
-    setJogoIniciado(true);
+    tocarSom("shuffle");
+
+    // Pegamos as fatias do baralho
+    const maoJogadorInicial = novoBaralho.splice(0, 7);
+    const maoPCInicial = novoBaralho.splice(0, 7);
+    const primeiraCarta = novoBaralho.pop() || null;
+
+    // O Juiz (Reducer) recebe tudo de uma vez
+    dispatch({
+      type: "INICIAR_JOGO",
+      payload: {
+        ...initialState,
+        baralho: novoBaralho,
+        maoJogador: maoJogadorInicial,
+        maoPC: maoPCInicial,
+        cartaTopo: primeiraCarta,
+        vezDoJogador: Math.random() < 0.5,
+        status: "JOGANDO",
+      },
+    });
   }
 
   function jogarPorIndice(indice: number) {
     const carta = maoJogador[indice];
 
-    // 1. Verificação de jogada válida
-    if (podeJogar(carta, cartaTopo, corAtual, precisaComprar.current)) {
-      if (cartaTopo) {
-        setHistoricoMesa((prev) => [...prev, cartaTopo]);
-      }
-
-      setCartaTopo(carta);
-
-      setMaoJogador((prev) => {
-        const novaMao = prev.filter((_, i) => i !== indice);
-
-        // Lógica do UNO: se restar 1 carta, inicia a janela de 5 segundos
-        if (novaMao.length === 1) {
-          iniciarJanelaUno();
-        }
-        return novaMao;
-      });
-
-      // Movido para fora do setMaoJogador para evitar efeitos colaterais
-      playCardSound(carta);
+    if (podeJogar(carta, cartaTopo, corAtual, precisaComprar)) {
+      // --- EFEITOS LATERAIS (SOM, VOZ E ESTATÍSTICA) ---
+      tocarSom("card", carta);
       anunciarCarta(carta, "jogador");
+
       StatsService.trackCardPlay(!!carta.acaoEspecial);
 
+      dispatch({
+        type: "JOGAR_CARTA",
+        payload: { carta, deQuem: "jogador" },
+      });
+
+      if (maoJogador.length === 2) {
+        iniciarJanelaUno();
+      }
+      const ehBloqueio =
+        carta.acaoEspecial === "pular" || carta.acaoEspecial === "reverso";
+
+      // Se não for escolha de cor, o turno acaba
       if (
-        carta.acaoEspecial === "coringa" ||
-        carta.acaoEspecial === "comprarQuatro"
+        carta.acaoEspecial !== "coringa" &&
+        carta.acaoEspecial !== "comprarQuatro" &&
+        !ehBloqueio
       ) {
-        setAguardandoCor(true);
-      } else {
-        setCorAtual(null);
-        setVezDoJogador(false);
-        setJaComprouNoTurno(false);
+        dispatch({ type: "FINALIZAR_TURNO" });
       }
     } else {
-      // Se a carta não for jogável
       anunciarJogadaInvalida();
-    }
-  }
-
-  function efeitoEspecial() {
-    if (
-      cartaTopo?.acaoEspecial === "reverso" ||
-      cartaTopo?.acaoEspecial === "pular"
-    ) {
-      // Inverte novamente, pulando o próximo turno
-      setVezDoJogador((prev) => !prev);
     }
   }
 
@@ -293,41 +239,51 @@ export function useUnoGame() {
     if (historicoMesa.length > 0) {
       const novoBaralho = shuffle([...historicoMesa]);
 
-      setBaralho(novoBaralho);
-      setHistoricoMesa([]);
+      dispatch({ type: "REEMBARALHAR_HISTORICO", payload: novoBaralho });
 
-      playShuffleSound();
-      // announcementUtils.anunciarReembaralhamento();
+      tocarSom("shuffle");
     }
   }
 
   function jogadaDoPC() {
-    console.log("jogada do pc, ja comprou no turno: ", jaComprouNoTurno);
     const cartaJogavel = maoPC.find((carta) =>
-      podeJogar(carta, cartaTopo, corAtual, precisaComprar.current),
+      podeJogar(carta, cartaTopo, corAtual, precisaComprar),
     );
 
     if (cartaJogavel) {
-      if (cartaTopo) {
-        setHistoricoMesa((prev) => [...prev, cartaTopo]);
-      }
+      // 2. Se for Coringa/+4, o PC escolhe a cor ANTES de jogar
       if (
         cartaJogavel.acaoEspecial === "coringa" ||
         cartaJogavel.acaoEspecial === "comprarQuatro"
       ) {
-        setCorAtual(pcEscolheCor());
+        const novaCor = pcEscolheCor();
+        dispatch({ type: "MUDAR_COR", payload: novaCor });
       }
-      setCartaTopo(cartaJogavel);
-      setMaoPC((prev) => prev.filter((c) => c !== cartaJogavel));
-      setVezDoJogador(true); // passa a vez
-      setJaComprouNoTurno(false);
-      playCardSound(cartaJogavel);
+
+      dispatch({
+        type: "JOGAR_CARTA",
+        payload: { carta: cartaJogavel, deQuem: "pc" },
+      });
+
+      tocarSom("card", cartaJogavel);
       anunciarCarta(cartaJogavel, "pc");
-      if (maoPC.length - 1 === 1) {
-        setPcDisseUno(Math.random() < 0.75);
+      StatsService.trackCardPlay(!!cartaJogavel.acaoEspecial);
+
+      if (maoPC.length === 2) {
+        const disseUno = Math.random() < 0.75;
+        dispatch({ type: "SET_UNO", payload: { quem: "pc", valor: disseUno } });
+        if (disseUno) tocarSom("uno");
+      }
+
+      const ehBloqueio =
+        cartaJogavel.acaoEspecial === "pular" ||
+        cartaJogavel.acaoEspecial === "reverso";
+      if (!ehBloqueio) {
+        dispatch({ type: "FINALIZAR_TURNO" });
       }
     } else if (baralho.length > 0 && !jaComprouNoTurno) {
-      comprar(); // isso vai alterar maoPC, o que reativa o useEffect
+      // Se o PC não tem o que jogar e ainda não comprou, ele compra
+      comprar();
     }
   }
 
@@ -338,109 +294,79 @@ export function useUnoGame() {
       reembaralharHistorico();
     }
 
-    const novoBaralho = [...baralho];
     const quantidade = quantosComprar(
       cartaTopo,
-      punicaoPorNaoDizerUno.current,
-      precisaComprar.current,
+      false,
+      precisaComprar,
       historicoMesa,
     );
-    const compradas: CartaUno[] = [];
-    let i = 0;
-    while (novoBaralho.length > 0 && i < quantidade) {
-      const carta = novoBaralho.pop();
-      if (carta) compradas.push(carta);
-      i++;
+    const compradas = baralho.slice(-quantidade);
+    const quem = vezDoJogador ? "jogador" : "pc";
+
+    dispatch({
+      type: "COMPRAR_CARTAS",
+      payload: { cartas: compradas, paraQuem: quem },
+    });
+
+    tocarSom("draw");
+    anunciarCompra(quem, quantidade);
+
+    // Reseta o estado de Uno para quem comprou
+    dispatch({ type: "SET_UNO", payload: { quem, valor: false } });
+
+    if (vezDoJogador) totalDrawnInMatch.current += quantidade;
+
+    // Lógica de Verificação de Jogada
+    const maoAtualizada = vezDoJogador
+      ? [...maoJogador, ...compradas]
+      : [...maoPC, ...compradas];
+    const temJogada = temCartaJogavel(
+      maoAtualizada,
+      cartaTopo,
+      corAtual,
+      false,
+    );
+
+    // Se ele comprou e AINDA NÃO TEM o que jogar, encerra o turno e sai da função
+    if (!temJogada) {
+      dispatch({ type: "FINALIZAR_TURNO" });
+      return;
     }
 
-    setBaralho(novoBaralho);
-
-    playDrawSound();
-
-    if (vezDoJogador) {
-      setMaoJogador((prev) => {
-        const novaMao = [...prev, ...compradas];
-
-        if (
-          !temCartaJogavel(novaMao, cartaTopo, corAtual, precisaComprar.current)
-        ) {
-          setVezDoJogador(false);
-          setJaComprouNoTurno(false);
-        }
-
-        return novaMao;
-      });
-
-      anunciarCompra("jogador", quantidade);
-      setJogadorDisseUno(false);
-      totalDrawnInMatch.current += quantidade;
-    } else {
-      setMaoPC((prev) => {
-        const novaMao = [...prev, ...compradas];
-
-        if (
-          !temCartaJogavel(novaMao, cartaTopo, corAtual, precisaComprar.current)
-        ) {
-          setVezDoJogador(true);
-          setJaComprouNoTurno(false);
-
-          /*console.log(
-            "Caiu onde não tem cartas do pc, observe o vez do jogador pra ver se tá correto",
-          );
-          console.log("vez do jogador:", vezDoJogador);*/
-        }
-
-        return novaMao;
-      });
-
-      anunciarCompra("pc", quantidade);
-      setPcDisseUno(false);
-    }
-
-    if (punicaoPorNaoDizerUno.current) {
-      punicaoPorNaoDizerUno.current = false;
-    }
-
-    precisaComprar.current = false;
-    setJaComprouNoTurno(true);
-
-    //console.log("precisa comporar: ", precisaComprar.current);
-    //console.log("ja comprou: ", jaComprouNoTurno);
-    //console.log("Vez do jogoador: ", vezDoJogador);
+    // Se chegou aqui, é porque ele tem uma carta jogável.
+    // O turno continua para ele decidir se joga ou se guarda a carta.
   }
 
-  function alguemPodeJogar(): boolean {
-    return (
-      maoJogador.some((carta) =>
-        podeJogar(carta, cartaTopo, corAtual, precisaComprar.current),
-      ) ||
-      maoPC.some((carta) =>
-        podeJogar(carta, cartaTopo, corAtual, precisaComprar.current),
-      )
-    );
+  function desistirPartida() {
+    const duracao = Math.floor((Date.now() - startTime.current) / 1000);
+
+    StatsService.saveMatchResult(false, duracao, totalDrawnInMatch.current, 0);
+
+    if (timerUnoRef.current) {
+      clearTimeout(timerUnoRef.current);
+    }
+
+    announce("Partida encerrada. Retornando ao menu principal.");
+    router.replace("/");
   }
 
   return {
     maoJogador,
-    setMaoJogador,
     maoPC,
     baralho,
     cartaTopo,
     vezDoJogador,
-    setVezDoJogador,
     jaComprouNoTurno,
     historicoMesa,
     corAtual,
-    setCorAtual,
-    jogoIniciado,
-    aguardandoCor,
-    setAguardandoCor,
+    status,
+    aguardandoUno,
     jogadorDisseUno,
-    setJogadorDisseUno,
     iniciarJogo,
     jogarPorIndice,
     jogadaDoPC,
     comprar,
-    efeitoEspecial,
+    desistirPartida,
+    dispatch,
   };
 }

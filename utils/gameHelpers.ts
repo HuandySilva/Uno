@@ -12,24 +12,56 @@ export function gerarBaralho(): CartaUno[] {
 
   for (const cor of cores) {
     for (let i = 0; i <= 9; i++) {
-      baralho.push({ cor, numero: i });
-      if (i !== 0) baralho.push({ cor, numero: i }); // duas de cada, exceto o 0
+      baralho.push({ id: gerarIdUnico(`${cor}-${i}`), cor, numero: i });
+      if (i !== 0) {
+        baralho.push({ id: gerarIdUnico(`${cor}-${i}`), cor, numero: i });
+      } // duas de cada, exceto o 0
     }
 
-    baralho.push({ cor, acaoEspecial: "pular" });
-    baralho.push({ cor, acaoEspecial: "pular" });
+    baralho.push({
+      id: gerarIdUnico(`${cor}-pular`),
+      cor,
+      acaoEspecial: "pular",
+    });
+    baralho.push({
+      id: gerarIdUnico(`${cor}-pular`),
+      cor,
+      acaoEspecial: "pular",
+    });
 
-    baralho.push({ cor, acaoEspecial: "reverso" });
-    baralho.push({ cor, acaoEspecial: "reverso" });
+    baralho.push({
+      id: gerarIdUnico(`${cor}-reverso`),
+      cor,
+      acaoEspecial: "reverso",
+    });
+    baralho.push({
+      id: gerarIdUnico(`${cor}-reverso`),
+      cor,
+      acaoEspecial: "reverso",
+    });
 
-    baralho.push({ cor, acaoEspecial: "comprarDois" });
-    baralho.push({ cor, acaoEspecial: "comprarDois" });
+    baralho.push({
+      id: gerarIdUnico(`${cor}-comprarDois`),
+      cor,
+      acaoEspecial: "comprarDois",
+    });
+    baralho.push({
+      id: gerarIdUnico(`${cor}-comprarDois`),
+      cor,
+      acaoEspecial: "comprarDois",
+    });
   }
-
-  // coringas pretos
   for (let i = 0; i < 4; i++) {
-    baralho.push({ cor: "preto", acaoEspecial: "coringa" });
-    baralho.push({ cor: "preto", acaoEspecial: "comprarQuatro" });
+    baralho.push({
+      id: gerarIdUnico("preto-coringa"),
+      cor: "preto",
+      acaoEspecial: "coringa",
+    });
+    baralho.push({
+      id: gerarIdUnico("preto-comprarQuatro"),
+      cor: "preto",
+      acaoEspecial: "comprarQuatro",
+    });
   }
 
   return baralho;
@@ -227,3 +259,7 @@ const calcularRank = (carta: CartaUno, prioridade: "cor" | "valor") => {
 export const ordenarMao = (mao: CartaUno[], tipo: "cor" | "valor") => {
   return [...mao].sort((a, b) => calcularRank(a, tipo) - calcularRank(b, tipo));
 };
+
+function gerarIdUnico(prefixo: string): string {
+  return `${prefixo}-${Math.random().toString(36).substring(2, 9)}`;
+}

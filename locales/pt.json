@@ -70,6 +70,11 @@
   "Records_and_Time": "Recordes e Tempo",
   "Victories_Stats": "Estatísticas de Vitória",
   "Losses_Stats": "Estatísticas de Derrota",
+  "quit_title": "Desistir da partida?",
+  "quit_message": "Seu progresso nesta partida será perdido. Tem certeza?",
+  "quit_confirm": "Desistir",
+  "quit_cancel": "Continuar jogando",
+  "quit_announce": "Partida encerrada. Retornando ao menu principal.",
   "colors": {
     "red": "Vermelho",
     "blue": "Azul",

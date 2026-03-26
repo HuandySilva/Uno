@@ -1,10 +1,10 @@
-import * as AudioFactory from "expo-av";
 import {
   View,
   Text,
   StyleSheet,
   Button,
   AccessibilityInfo,
+  TouchableOpacity,
 } from "react-native";
 import { useState, useEffect } from "react";
 import { useUnoGame } from "@/hooks/useUnoGame";
@@ -13,60 +13,50 @@ import PopupEscolherCor from "@/components/PopupEscolherCor";
 import ChooseCard from "@/components/ChooseCard";
 import ChosenColorBanner from "@/components/ChosenColorBanner";
 import StatusBoard from "@/components/StatusBoard";
-import { playUnoSound } from "../utils/soundUtils";
 import { useTranslation } from "react-i18next";
 import { useCardTranslator } from "@/hooks/useCardTranslator";
 import { useGameAnnouncements } from "@/hooks/useGameAnnouncements";
 import SortingModal from "@/components/SortingModal";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 export default function GameScreen() {
   const {
     maoJogador,
-    setMaoJogador,
     maoPC,
     cartaTopo,
     historicoMesa,
     vezDoJogador,
-    setVezDoJogador,
     jaComprouNoTurno,
     corAtual,
-    setCorAtual,
-    aguardandoCor,
-    setAguardandoCor,
+    status,
+    aguardandoUno,
     jogadorDisseUno,
-    setJogadorDisseUno,
     jogarPorIndice,
     comprar,
+    desistirPartida,
+    dispatch,
   } = useUnoGame();
 
   const { t } = useTranslation();
   const { getColorKey, getActionKey } = useCardTranslator();
-  const { anunciarCorEscolhida, anunciarTurno } = useGameAnnouncements();
 
   const [mostrarHistorico, setMostrarHistorico] = useState(false);
-  const [mostrarPopup, setMostrarPopup] = useState(false);
   const [mostrarBannerCor, setMostrarBannerCor] = useState(false);
+  const [mostrarConfirmarSaida, setMostrarConfirmarSaida] = useState(false);
+  const mostrarPopupCor = status === "ESCOLHENDO_COR" && vezDoJogador;
 
+  const handleConfirmarDesistencia = () => {
+    setMostrarConfirmarSaida(false);
+    desistirPartida();
+  };
   useEffect(() => {
-    if (aguardandoCor && vezDoJogador) {
-      setMostrarPopup(true);
-      setAguardandoCor(false);
-    }
-  }, [aguardandoCor, vezDoJogador]);
-
-  useEffect(() => {
-    if (
-      (corAtual && cartaTopo?.acaoEspecial === "coringa") ||
-      cartaTopo?.acaoEspecial === "comprarQuatro"
-    ) {
+    if (corAtual) {
       setMostrarBannerCor(true);
     }
   }, [corAtual]);
 
   function escolherCor(cor: string) {
-    setCorAtual(cor);
-    setMostrarPopup(false);
-    setVezDoJogador(false);
+    dispatch({ type: "MUDAR_COR", payload: cor });
   }
 
   return (
@@ -78,11 +68,11 @@ export default function GameScreen() {
           {cartaTopo.acaoEspecial
             ? t(`actions.${getActionKey(cartaTopo.acaoEspecial)}`)
             : cartaTopo.numero}{" "}
-          ({t(`colors.${getColorKey(cartaTopo.cor)}`)})
+          ({t(`colors.${getColorKey(cartaTopo.cor || corAtual)}`)})
         </Text>
       )}
 
-      <SortingModal maoJogador={maoJogador} setMaoJogador={setMaoJogador} />
+      <SortingModal maoJogador={maoJogador} dispatch={dispatch} />
       {mostrarBannerCor && (
         <ChosenColorBanner
           cor={corAtual ?? ""}
@@ -97,22 +87,13 @@ export default function GameScreen() {
       <Button
         title={jaComprouNoTurno ? t("Drawn") : t("Draw")}
         onPress={comprar}
+        disabled={!vezDoJogador || status !== "JOGANDO"}
       />
 
       <PopupEscolherCor
-        visivel={mostrarPopup}
-        onFechar={() => setMostrarPopup(false)}
+        visivel={mostrarPopupCor}
+        onFechar={() => {}} // No Uno, você é obrigado a escolher a cor
         onEscolher={escolherCor}
-      />
-
-      <Button
-        title={t("Uno")}
-        onPress={() => {
-          setJogadorDisseUno(true);
-          playUnoSound();
-          AccessibilityInfo.announceForAccessibility(t("Uno"));
-        }}
-        disabled={maoJogador.length !== 2 || jogadorDisseUno}
       />
 
       <Button
@@ -125,6 +106,21 @@ export default function GameScreen() {
         maoJogadorCount={maoJogador.length}
         maoPCCount={maoPC.length}
         corAtual={corAtual}
+      />
+
+      <TouchableOpacity
+        style={styles.btnDesistir}
+        onPress={() => setMostrarConfirmarSaida(true)}
+        accessibilityRole="button"
+        accessibilityLabel={t("game.quit_confirm")}
+      >
+        <Text style={styles.txtDesistir}>X</Text>
+      </TouchableOpacity>
+
+      <ConfirmDialog
+        visivel={mostrarConfirmarSaida}
+        onConfirmar={handleConfirmarDesistencia}
+        onCancelar={() => setMostrarConfirmarSaida(false)}
       />
     </View>
   );
@@ -145,5 +141,23 @@ const styles = StyleSheet.create({
     fontSize: 18,
     marginBottom: 20,
     color: "tomato",
+  },
+
+  btnDesistir: {
+    position: "absolute",
+    top: 50, // Ajuste conforme o SafeArea
+    left: 20,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#FF3B30",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 10, // Garante que fique por cima de tudo
+  },
+  txtDesistir: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 18,
   },
 });
