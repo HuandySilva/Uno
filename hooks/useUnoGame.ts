@@ -35,13 +35,8 @@ const initialState: UnoState = {
 
 export function useUnoGame() {
   const { tocarSom } = useUnoAudio();
-  const {
-    anunciarCarta,
-    anunciarPunicao,
-    anunciarCompra,
-    anunciarJogadaInvalida,
-    announce,
-  } = useGameAnnouncements();
+  const { anunciarCarta, anunciarPunicao, anunciarCompra, announce } =
+    useGameAnnouncements();
   const startTime = useRef<number>(Date.now());
   const totalDrawnInMatch = useRef<number>(0);
   const timerUnoRef = useRef<NodeJS.Timeout | null>(null);
@@ -230,8 +225,6 @@ export function useUnoGame() {
       ) {
         dispatch({ type: "FINALIZAR_TURNO" });
       }
-    } else {
-      anunciarJogadaInvalida();
     }
   }
 
@@ -366,6 +359,7 @@ export function useUnoGame() {
     jogarPorIndice,
     jogadaDoPC,
     comprar,
+    precisaComprar,
     desistirPartida,
     dispatch,
   };

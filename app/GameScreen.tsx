@@ -33,6 +33,7 @@ export default function GameScreen() {
     jogadorDisseUno,
     jogarPorIndice,
     comprar,
+    precisaComprar,
     desistirPartida,
     dispatch,
   } = useUnoGame();
@@ -80,7 +81,13 @@ export default function GameScreen() {
         />
       )}
 
-      <ChooseCard maoJogador={maoJogador} jogar={jogarPorIndice} />
+      <ChooseCard
+        maoJogador={maoJogador}
+        jogar={jogarPorIndice}
+        cartaTopo={cartaTopo}
+        corAtual={corAtual}
+        precisaComprar={precisaComprar}
+      />
 
       {mostrarHistorico && <HistoricoMesa historico={historicoMesa} />}
 

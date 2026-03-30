@@ -10,36 +10,49 @@ import { CartaUno } from "@/types/CartaUno";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useCardTranslator } from "@/hooks/useCardTranslator";
+import { podeJogar } from "@/utils/gameHelpers";
 
 interface Props {
   maoJogador: CartaUno[];
   jogar: (index: number) => void;
+  cartaTopo: CartaUno | null;
+  corAtual: string | null;
+  precisaComprar: boolean;
 }
 
-export default function ChooseCard({ maoJogador, jogar }: Props) {
+export default function ChooseCard({
+  maoJogador,
+  jogar,
+  cartaTopo,
+  corAtual,
+  precisaComprar,
+}: Props) {
   const [modalVisivel, setModalVisivel] = useState(false);
   const { t } = useTranslation();
   const { getCardTranslation } = useCardTranslator();
 
   const renderItem = ({ item, index }: { item: CartaUno; index: number }) => {
     const { valor, cor, colorKey, full } = getCardTranslation(item);
+    const jogavel = podeJogar(item, cartaTopo, corAtual, precisaComprar);
 
     return (
       <TouchableOpacity
         style={[
           styles.cardItem,
-          {
-            borderLeftColor:
-              colorKey === "special" ? styles.specialCard.color : colorKey,
-          },
+          { borderLeftColor: colorKey === "special" ? "#333" : colorKey },
+          !jogavel && styles.cardDisabled,
         ]}
         onPress={() => {
           setModalVisivel(false);
           jogar(index);
         }}
+        disabled={!jogavel}
         accessibilityLabel={t("Card_acc_label", { value: valor, color: cor })}
+        accessibilityState={{ disabled: !jogavel }}
       >
-        <Text style={styles.cardText}>{full}</Text>
+        <Text style={[styles.cardText, !jogavel && styles.disabledText]}>
+          {full} {!jogavel && `(${t("Invalid_move_announce")})`}
+        </Text>
       </TouchableOpacity>
     );
   };
@@ -137,11 +150,16 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     borderRadius: 5,
   },
-  specialCard: {
-    color: "#333", // Centralizamos a cor do 'especial' aqui no estilo
+  cardDisabled: {
+    opacity: 0.4,
+    backgroundColor: "#e0e0e0",
   },
   cardText: {
     fontSize: 16,
+    color: "#000",
+  },
+  disabledText: {
+    color: "#888",
   },
   closeButton: {
     marginTop: 15,

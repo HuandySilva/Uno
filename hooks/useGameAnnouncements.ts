@@ -53,17 +53,12 @@ export function useGameAnnouncements() {
     announce(isPlayerTurn ? t("turn_player") : t("turn_machine"));
   };
 
-  const anunciarJogadaInvalida = () => {
-    announce(t("Invalid_move_announce"));
-  };
-
   return {
     anunciarCompra,
     anunciarCarta,
     anunciarPunicao,
     anunciarCorEscolhida,
     anunciarTurno,
-    anunciarJogadaInvalida,
     announce,
   };
 }
