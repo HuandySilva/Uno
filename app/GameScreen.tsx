@@ -112,7 +112,7 @@ export default function GameScreen() {
         style={styles.btnDesistir}
         onPress={() => setMostrarConfirmarSaida(true)}
         accessibilityRole="button"
-        accessibilityLabel={t("game.quit_confirm")}
+        accessibilityLabel={t("quit_btn")}
       >
         <Text style={styles.txtDesistir}>X</Text>
       </TouchableOpacity>

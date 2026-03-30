@@ -36,3 +36,19 @@ yarn-error.*
 *.tsbuildinfo
 
 app-example
+
+# Android build artifacts
+android/build/
+android/.gradle/
+android/app/build/
+*.aar
+*.ap_
+*.apk
+*.dex
+
+# Local configuration files
+local.properties
+.stacktrace
+
+# Generated files
+android/app/src/main/res/mipmap-*

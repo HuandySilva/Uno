@@ -76,6 +76,7 @@
   "quit_confirm": "Quit",
   "quit_cancel": "Keep playing",
   "quit_announce": "Match ended. Returning to main menu.",
+  "quit_btn": "Quit!",
   "colors": {
     "red": "Red",
     "blue": "Blue",

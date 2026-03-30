@@ -75,6 +75,8 @@
   "quit_confirm": "Desistir",
   "quit_cancel": "Continuar jogando",
   "quit_announce": "Partida encerrada. Retornando ao menu principal.",
+  "quit_btn": "Quit!",
+
   "colors": {
     "red": "Vermelho",
     "blue": "Azul",

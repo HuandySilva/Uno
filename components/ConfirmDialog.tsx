@@ -24,14 +24,14 @@ export default function ConfirmDialog({
     >
       <View style={styles.overlay}>
         <View style={styles.card} accessibilityRole="alert">
-          <Text style={styles.title}>{t("game.quit_title")}</Text>
-          <Text style={styles.message}>{t("game.quit_message")}</Text>
+          <Text style={styles.title}>{t("quit_title")}</Text>
+          <Text style={styles.message}>{t("quit_message")}</Text>
 
           <View style={styles.buttonRow}>
             <TouchableOpacity
               style={styles.btnCancel}
               onPress={onCancelar}
-              accessibilityLabel={t("game.quit_cancel")}
+              accessibilityLabel={t("quit_cancel")}
               accessibilityRole="button"
             >
               <Text style={styles.btnTextCancel}>{t("game.quit_cancel")}</Text>
@@ -40,12 +40,10 @@ export default function ConfirmDialog({
             <TouchableOpacity
               style={styles.btnConfirm}
               onPress={onConfirmar}
-              accessibilityLabel={t("game.quit_confirm")}
+              accessibilityLabel={t("quit_confirm")}
               accessibilityRole="button"
             >
-              <Text style={styles.btnTextConfirm}>
-                {t("game.quit_confirm")}
-              </Text>
+              <Text style={styles.btnTextConfirm}>{t("quit_confirm")}</Text>
             </TouchableOpacity>
           </View>
         </View>

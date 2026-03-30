@@ -27,7 +27,6 @@ export function unoReducer(state: UnoState, action: Action): UnoState {
     case "JOGAR_CARTA": {
       const { carta, deQuem } = action.payload;
 
-      // Lógica de Bloqueio (Pular/Reverso) para 2 jogadores
       const ehBloqueio =
         carta.acaoEspecial === "pular" || carta.acaoEspecial === "reverso";
       const ehCoringa =
@@ -44,7 +43,6 @@ export function unoReducer(state: UnoState, action: Action): UnoState {
           ? [...state.historicoMesa, state.cartaTopo]
           : state.historicoMesa,
 
-        // Remove a carta da mão certa usando o ID único
         maoJogador:
           deQuem === "jogador"
             ? state.maoJogador.filter((c) => c.id !== carta.id)
@@ -54,11 +52,8 @@ export function unoReducer(state: UnoState, action: Action): UnoState {
             ? state.maoPC.filter((c) => c.id !== carta.id)
             : state.maoPC,
 
-        // Se for Bloqueio (Pular/Reverso), a vez CONTINUA com quem jogou.
-        // Se não, mantemos como está e o FINALIZAR_TURNO cuidará da inversão.
         vezDoJogador: ehBloqueio ? deQuem === "jogador" : state.vezDoJogador,
 
-        // Ativa o sinalizador de compra para o próximo jogador
         precisaComprar: geraAtaque,
 
         // Gerencia o status de fluxo
