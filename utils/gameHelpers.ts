@@ -260,6 +260,17 @@ export const ordenarMao = (mao: CartaUno[], tipo: "cor" | "valor") => {
   return [...mao].sort((a, b) => calcularRank(a, tipo) - calcularRank(b, tipo));
 };
 
+export function ehCartaDeBloqueio(carta: CartaUno | null): boolean {
+  if (!carta) return false;
+  return carta.acaoEspecial === "pular" || carta.acaoEspecial === "reverso";
+}
+
+export function ehCoringa(carta: CartaUno | null): boolean {
+  if (!carta) return false;
+  return (
+    carta.acaoEspecial === "coringa" || carta.acaoEspecial === "comprarQuatro"
+  );
+}
 function gerarIdUnico(prefixo: string): string {
   return `${prefixo}-${Math.random().toString(36).substring(2, 9)}`;
 }

@@ -10,7 +10,7 @@ import { CartaUno } from "@/types/CartaUno";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useCardTranslator } from "@/hooks/useCardTranslator";
-import { podeJogar } from "@/utils/gameHelpers";
+import { podeJogar, ehCartaDeBloqueio } from "@/utils/gameHelpers";
 
 interface Props {
   maoJogador: CartaUno[];
@@ -31,6 +31,13 @@ export default function ChooseCard({
   const { t } = useTranslation();
   const { getCardTranslation } = useCardTranslator();
 
+  const handlePressCard = (item: CartaUno, index: number) => {
+    if (!ehCartaDeBloqueio(item)) {
+      setModalVisivel(false);
+    }
+    jogar(index);
+  };
+
   const renderItem = ({ item, index }: { item: CartaUno; index: number }) => {
     const { valor, cor, colorKey, full } = getCardTranslation(item);
     const jogavel = podeJogar(item, cartaTopo, corAtual, precisaComprar);
@@ -42,10 +49,7 @@ export default function ChooseCard({
           { borderLeftColor: colorKey === "special" ? "#333" : colorKey },
           !jogavel && styles.cardDisabled,
         ]}
-        onPress={() => {
-          setModalVisivel(false);
-          jogar(index);
-        }}
+        onPress={() => handlePressCard(item, index)}
         disabled={!jogavel}
         accessibilityLabel={t("Card_acc_label", { value: valor, color: cor })}
         accessibilityState={{ disabled: !jogavel }}
