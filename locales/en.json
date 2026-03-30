@@ -77,6 +77,7 @@
   "quit_cancel": "Keep playing",
   "quit_announce": "Match ended. Returning to main menu.",
   "quit_btn": "Quit!",
+  "Select_language_title": "App language.",
   "colors": {
     "red": "Red",
     "blue": "Blue",

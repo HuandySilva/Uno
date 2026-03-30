@@ -76,7 +76,7 @@
   "quit_cancel": "Continuar jogando",
   "quit_announce": "Partida encerrada. Retornando ao menu principal.",
   "quit_btn": "Quit!",
-
+  "Select_language_title": "Idioma do aplicativo.",
   "colors": {
     "red": "Vermelho",
     "blue": "Azul",

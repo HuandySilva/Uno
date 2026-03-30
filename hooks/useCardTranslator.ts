@@ -11,7 +11,7 @@ const colorKeys: Record<string, string> = {
 const actionKeys: Record<string, string> = {
   pular: "skip",
   reverso: "reverse",
-  comprarDuos: "drawTwo",
+  comprarDois: "drawTwo",
   comprarQuatro: "drawFour",
   coringa: "wild",
 };
