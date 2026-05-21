@@ -11,6 +11,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useCardTranslator } from "@/hooks/useCardTranslator";
 import { podeJogar, ehCartaDeBloqueio } from "@/utils/gameHelpers";
+import { useSettings } from "@/context/SettingsContext";
 
 interface Props {
   maoJogador: CartaUno[];
@@ -30,6 +31,7 @@ export default function ChooseCard({
   const [modalVisivel, setModalVisivel] = useState(false);
   const { t } = useTranslation();
   const { getCardTranslation } = useCardTranslator();
+  const { modoAtivo } = useSettings();
 
   const handlePressCard = (item: CartaUno, index: number) => {
     if (!ehCartaDeBloqueio(item)) {
@@ -40,7 +42,13 @@ export default function ChooseCard({
 
   const renderItem = ({ item, index }: { item: CartaUno; index: number }) => {
     const { valor, cor, colorKey, full } = getCardTranslation(item);
-    const jogavel = podeJogar(item, cartaTopo, corAtual, precisaComprar);
+    const jogavel = podeJogar(
+      item,
+      cartaTopo,
+      corAtual,
+      precisaComprar,
+      modoAtivo,
+    );
 
     return (
       <TouchableOpacity

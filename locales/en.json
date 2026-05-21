@@ -91,5 +91,30 @@
     "drawTwo": "+2",
     "drawFour": "+4",
     "wild": "Wild"
-  }
+  },
+  "Modes_Selection_Title": "Choose Game Mode:",
+  "Classic_Mode": "Classic",
+  "Treta_Mode": "Treta Mode 🔥",
+
+  "treta_actions": {
+    "gado": "Gado",
+    "bomba": "The Bomb",
+    "cachaça": "Sugar Cane Spirit",
+    "olhar_43": "Seductive Gaze",
+    "lata_lixo": "Trash Can",
+    "propina": "Bribe"
+  },
+
+  "treta_announces": {
+    "gado": "Moooo! You've lassoed the opponent's wild card!",
+    "bomba": "BOOM! 12 cards delivered to the target.",
+    "cachaça": "Cheers! The opponent is tipsy and lost control of their hand.",
+    "olhar_43": "The target is paralyzed by your seductive gaze... Oh, the drama!",
+    "lata_lixo": "Trash day! You dumped your garbage cards on {{name}}.",
+    "propina": "Bribe accepted. You gave a wild card to play again."
+  },
+  "Select_Mode_Label": "Selected Game Mode:",
+  "Mode_Slider_Acc": "Slide to change the game mode",
+  "classico_Mode": "Classic",
+  "treta_Mode": "Chaos Mode"
 }

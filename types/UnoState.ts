@@ -14,4 +14,9 @@ export interface UnoState {
   aguardandoUno: boolean;
   jogadorDisseUno: boolean;
   pcDisseUno: boolean;
+  quantidadeParaComprar?: number;
+  statusMensagem?: string;
+  pendenteRouboMelhorCarta?: boolean; // Para a regra do Gado
+  efeitoAleatorioAtivo?: boolean; // Para a Cachaça
+  bloqueioAcumulado?: number; // Para o Olhar 43
 }

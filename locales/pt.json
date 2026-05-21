@@ -90,5 +90,30 @@
     "drawTwo": "+2",
     "drawFour": "+4",
     "wild": "Coringa"
-  }
+  },
+  "Modes_Selection_Title": "Escolha o Modo de Jogo:",
+  "Classic_Mode": "Clássico",
+  "Treta_Mode": "Modo Treta 🔥",
+
+  "treta_actions": {
+    "gado": "Gado",
+    "bomba": "Bomba",
+    "cachaça": "Cachaça",
+    "olhar_43": "Olhar 43",
+    "lata_lixo": "Lata de Lixo",
+    "propina": "Propina"
+  },
+
+  "treta_announces": {
+    "gado": "Muuuu! Você laçou o coringa do adversário!",
+    "bomba": "CABUM! 12 cartas entregues com sucesso.",
+    "cachaça": "Saúde! O adversário tomou uma e perdeu o controle da mão.",
+    "olhar_43": "O alvo está paralisado pelo seu olhar apaixonado... Que drama!",
+    "lata_lixo": "Dia de faxina! Você jogou seu lixo na mão de {{name}}.",
+    "propina": "Propina aceita. Você deu um coringa para jogar de novo."
+  },
+  "Select_Mode_Label": "Modo de Jogo Selecionado:",
+  "Mode_Slider_Acc": "Deslize para trocar o modo de jogo",
+  "classico_Mode": "Clássico",
+  "treta_Mode": "Modo Treta"
 }

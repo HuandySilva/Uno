@@ -3,7 +3,6 @@ import { CartaUno } from "../types/CartaUno";
 import { useRouter } from "expo-router"; // se você estiver usando expo-router
 import {
   gerarBaralho,
-  pcEscolheCor,
   shuffle,
   calcularPontos,
   podeJogar,
@@ -16,6 +15,9 @@ import { useShakeDetector } from "./useShakeDetector";
 import { useUnoAudio } from "./useUnoAudio";
 import { unoReducer } from "./unoReducer";
 import { UnoState } from "@/types/UnoState";
+import { decidirJogadaPC } from "@/utils/pcLogic";
+import { ehCartaDeBloqueio, ehCoringa } from "@/utils/gameHelpers";
+import { useSettings } from "../context/SettingsContext";
 
 const initialState: UnoState = {
   baralho: [],
@@ -57,6 +59,7 @@ export function useUnoGame() {
     aguardandoUno,
     jogadorDisseUno,
   } = state;
+  const { modoAtivo } = useSettings();
 
   useShakeDetector(
     () => finalizarJanelaUno(true), // O que fazer quando balançar
@@ -169,10 +172,10 @@ export function useUnoGame() {
     startTime.current = Date.now();
     totalDrawnInMatch.current = 0;
 
-    let novoBaralho = gerarBaralho();
+    let novoBaralho = gerarBaralho(modoAtivo);
     do {
       novoBaralho = shuffle(novoBaralho);
-    } while (novoBaralho[novoBaralho.length - 1].acaoEspecial);
+    } while (novoBaralho[novoBaralho.length - 1].numero);
 
     tocarSom("shuffle");
 
@@ -199,7 +202,7 @@ export function useUnoGame() {
   function jogarPorIndice(indice: number) {
     const carta = maoJogador[indice];
 
-    if (podeJogar(carta, cartaTopo, corAtual, precisaComprar)) {
+    if (podeJogar(carta, cartaTopo, corAtual, precisaComprar, modoAtivo)) {
       // --- EFEITOS LATERAIS (SOM, VOZ E ESTATÍSTICA) ---
       tocarSom("card", carta);
       anunciarCarta(carta, "jogador");
@@ -217,7 +220,6 @@ export function useUnoGame() {
       const ehBloqueio =
         carta.acaoEspecial === "pular" || carta.acaoEspecial === "reverso";
 
-      // Se não for escolha de cor, o turno acaba
       if (
         carta.acaoEspecial !== "coringa" &&
         carta.acaoEspecial !== "comprarQuatro" &&
@@ -239,18 +241,19 @@ export function useUnoGame() {
   }
 
   function jogadaDoPC() {
-    const cartaJogavel = maoPC.find((carta) =>
-      podeJogar(carta, cartaTopo, corAtual, precisaComprar),
+    const { indice, corEscolhida } = decidirJogadaPC(
+      maoPC,
+      cartaTopo,
+      corAtual,
+      precisaComprar,
+      modoAtivo,
     );
 
-    if (cartaJogavel) {
-      // 2. Se for Coringa/+4, o PC escolhe a cor ANTES de jogar
-      if (
-        cartaJogavel.acaoEspecial === "coringa" ||
-        cartaJogavel.acaoEspecial === "comprarQuatro"
-      ) {
-        const novaCor = pcEscolheCor();
-        dispatch({ type: "MUDAR_COR", payload: novaCor });
+    if (indice !== -1) {
+      const cartaJogavel = maoPC[indice];
+
+      if (corEscolhida) {
+        dispatch({ type: "MUDAR_COR", payload: corEscolhida });
       }
 
       dispatch({
@@ -268,14 +271,10 @@ export function useUnoGame() {
         if (disseUno) tocarSom("uno");
       }
 
-      const ehBloqueio =
-        cartaJogavel.acaoEspecial === "pular" ||
-        cartaJogavel.acaoEspecial === "reverso";
-      if (!ehBloqueio) {
+      if (!ehCartaDeBloqueio(cartaJogavel)) {
         dispatch({ type: "FINALIZAR_TURNO" });
       }
     } else if (baralho.length > 0 && !jaComprouNoTurno) {
-      // Se o PC não tem o que jogar e ainda não comprou, ele compra
       comprar();
     }
   }
@@ -320,14 +319,10 @@ export function useUnoGame() {
       false,
     );
 
-    // Se ele comprou e AINDA NÃO TEM o que jogar, encerra o turno e sai da função
     if (!temJogada) {
       dispatch({ type: "FINALIZAR_TURNO" });
       return;
     }
-
-    // Se chegou aqui, é porque ele tem uma carta jogável.
-    // O turno continua para ele decidir se joga ou se guarda a carta.
   }
 
   function desistirPartida() {

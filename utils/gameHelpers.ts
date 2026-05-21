@@ -1,56 +1,52 @@
-import { CartaUno } from "../types/CartaUno";
-import { AccessibilityInfo } from "react-native";
+import { CartaUno, CorCarta, AcaoEspecial } from "../types/CartaUno";
+import { ModoJogoID } from "../context/SettingsContext";
+import { CONFIG_MODOS } from "../config/gameModes";
+import { MAPA_GERAL_DE_REGRAS } from "@/config/gameRules";
 
-export function pcEscolheCor(): string {
-  const cores = ["azul", "amarelo", "vermelho", "verde"];
-  return cores[Math.floor(Math.random() * cores.length)];
+const CORES_VIVAS: CorCarta[] = ["vermelho", "azul", "verde", "amarelo"];
+const CORES_ORDEM: CorCarta[] = [...CORES_VIVAS, "preto"];
+const ACOES_ORDEM: AcaoEspecial[] = [
+  "pular",
+  "reverso",
+  "comprarDois",
+  "coringa",
+  "comprarQuatro",
+];
+
+function gerarIdUnico(prefixo: string): string {
+  return `${prefixo}-${Math.random().toString(36).substring(2, 9)}`;
 }
 
-export function gerarBaralho(): CartaUno[] {
-  const cores = ["vermelho", "amarelo", "verde", "azul"] as const;
+export function gerarBaralho(modo: ModoJogoID = "classico"): CartaUno[] {
   const baralho: CartaUno[] = [];
-
-  for (const cor of cores) {
+  // --- 1. GERAÇÃO DO CORPO BÁSICO (UNO PADRÃO) ---
+  for (const cor of CORES_VIVAS) {
+    // Cartas de 0 a 9
     for (let i = 0; i <= 9; i++) {
       baralho.push({ id: gerarIdUnico(`${cor}-${i}`), cor, numero: i });
+      // O zero é a única carta que só tem uma cópia por cor
       if (i !== 0) {
         baralho.push({ id: gerarIdUnico(`${cor}-${i}`), cor, numero: i });
-      } // duas de cada, exceto o 0
+      }
     }
 
-    baralho.push({
-      id: gerarIdUnico(`${cor}-pular`),
-      cor,
-      acaoEspecial: "pular",
-    });
-    baralho.push({
-      id: gerarIdUnico(`${cor}-pular`),
-      cor,
-      acaoEspecial: "pular",
-    });
-
-    baralho.push({
-      id: gerarIdUnico(`${cor}-reverso`),
-      cor,
-      acaoEspecial: "reverso",
-    });
-    baralho.push({
-      id: gerarIdUnico(`${cor}-reverso`),
-      cor,
-      acaoEspecial: "reverso",
-    });
-
-    baralho.push({
-      id: gerarIdUnico(`${cor}-comprarDois`),
-      cor,
-      acaoEspecial: "comprarDois",
-    });
-    baralho.push({
-      id: gerarIdUnico(`${cor}-comprarDois`),
-      cor,
-      acaoEspecial: "comprarDois",
+    // Ações Coloridas (Pular, Reverso, +2) - 2 de cada por cor
+    const acoesColoridas: AcaoEspecial[] = ["pular", "reverso", "comprarDois"];
+    acoesColoridas.forEach((acao) => {
+      baralho.push({
+        id: gerarIdUnico(`${cor}-${acao}`),
+        cor,
+        acaoEspecial: acao,
+      });
+      baralho.push({
+        id: gerarIdUnico(`${cor}-${acao}`),
+        cor,
+        acaoEspecial: acao,
+      });
     });
   }
+
+  // Coringas Clássicos (Coringa e +4) - 4 de cada
   for (let i = 0; i < 4; i++) {
     baralho.push({
       id: gerarIdUnico("preto-coringa"),
@@ -63,43 +59,33 @@ export function gerarBaralho(): CartaUno[] {
       acaoEspecial: "comprarQuatro",
     });
   }
+  const cartasExtras: AcaoEspecial[] = CONFIG_MODOS[modo] || [];
 
+  if (cartasExtras.length > 0) {
+    cartasExtras.forEach((acao) => {
+      for (let i = 0; i < 2; i++) {
+        baralho.push({
+          id: gerarIdUnico(`extra-${modo}-${acao}-${i}`),
+          cor: "preto", // Cartas de modo funcionam como coringas (jogáveis sobre qualquer cor)
+          acaoEspecial: acao,
+        });
+      }
+    });
+  }
   return baralho;
 }
 
 export function shuffle(array: CartaUno[]): CartaUno[] {
-  const baralhoEmbaralhado: CartaUno[] = [];
-  const copia = [...array];
-
-  while (copia.length !== 0) {
-    const i = Math.floor(Math.random() * copia.length);
-    baralhoEmbaralhado.push(copia[i]);
-    copia.splice(i, 1);
-  }
-
-  return baralhoEmbaralhado;
+  return [...array].sort(() => Math.random() - 0.5);
 }
 
 export function calcularPontos(mao: CartaUno[]): number {
-  let total = 0;
-
-  for (const carta of mao) {
-    if (carta.numero !== undefined) {
-      total += carta.numero;
-    }
-
-    switch (carta.acaoEspecial) {
-      case "comprarDois":
-        total += 20;
-        break;
-      case "comprarQuatro":
-      case "coringa":
-        total += 50;
-        break;
-    }
-  }
-
-  return total;
+  return mao.reduce((total, carta) => {
+    if (carta.numero !== undefined) return total + carta.numero;
+    if (carta.acaoEspecial === "comprarDois") return total + 20;
+    if (ehCoringa(carta)) return total + 50;
+    return total + 20; // Pular e Reverso valem 20
+  }, 0);
 }
 
 export function podeJogar(
@@ -107,97 +93,78 @@ export function podeJogar(
   cartaTopo: CartaUno | null,
   corAtual: string | null,
   precisaComprar: boolean,
+  modoAtivo: ModoJogoID,
 ): boolean {
-  if (!cartaTopo) return false;
+  // 1. Se não tem nada na mesa (início/reset), qualquer carta vale.
+  if (!cartaTopo) return true;
 
+  // 2. BLOQUEIO DE ATAQUE (Sua regra: se precisa comprar, ignora especial)
   if (precisaComprar) {
+    // Só deixa passar se for o exato contra-ataque
     if (
       cartaTopo?.acaoEspecial === "comprarDois" &&
       carta?.acaoEspecial === "comprarDois"
     ) {
-      /*console.log(
-        `carta: ${carta?.cor} ${carta?.numero}, ${carta?.acaoEspecial}`,
-      );*/
-      /*console.log(
-        `Carta topo: ${cartaTopo?.cor} ${cartaTopo?.numero} ${cartaTopo?.acaoEspecial}`,
-      );*/
       return true;
     }
-
     if (
       cartaTopo?.acaoEspecial === "comprarQuatro" &&
       carta?.acaoEspecial === "comprarQuatro"
     ) {
-      /*console.log(
-        `carta: ${carta?.cor} ${carta?.numero}, ${carta?.acaoEspecial}`,
-      );
-      console.log(
-        `Carta topo: ${cartaTopo?.cor} ${cartaTopo?.numero} ${cartaTopo?.acaoEspecial}`,
-      );
-      console.log(`pode jogar: true`);*/
       return true;
     }
-
-    /*console.log(
-      `carta: ${carta?.cor} ${carta?.numero}, ${carta?.acaoEspecial}`,
-    );
-    console.log(
-      `Carta topo: ${cartaTopo?.cor} ${cartaTopo?.numero} ${cartaTopo?.acaoEspecial}`,
-    );
-    console.log(`pode jogar: false`);*/
+    // Se caiu aqui, não pode jogar mais nada, nem Especial, nem Bomba.
     return false;
   }
 
-  let podeJoga = false;
+  // --- DEBUG START ---
+  console.log("=== DEBUG PODE JOGAR ===");
+  console.log("Modo Ativo Recebido:", modoAtivo);
+  console.log("Ação da Carta Atual:", carta?.acaoEspecial || "Nenhuma");
+
+  const mapaDoModo = MAPA_GERAL_DE_REGRAS[modoAtivo];
+  console.log("Mapa do Modo Encontrado?:", !!mapaDoModo);
+
+  if (mapaDoModo) {
+    console.log("Regras disponíveis neste modo:", Object.keys(mapaDoModo));
+    const regraEspecifica = mapaDoModo[carta.acaoEspecial || ""];
+    console.log("Regra específica para esta carta existe?:", !!regraEspecifica);
+  } else {
+    console.log(
+      "ERRO: Modo '" + modoAtivo + "' não existe no MAPA_GERAL_DE_REGRAS!",
+    );
+  }
+
+  const temRegraEspecial = !!mapaDoModo?.[carta.acaoEspecial || ""];
+  console.log("Resultado Final temRegraEspecial:", temRegraEspecial);
+  console.log("========================");
+  // --- DEBUG END ---
+
+  // 3. SE NÃO ESTÁ SOB ATAQUE, VERIFICAMOS A TRETA
+  /*  const temRegraEspecial =
+    !!MAPA_GERAL_DE_REGRAS[modoAtivo]?.[carta.acaoEspecial || ""]; */
 
   if (
+    temRegraEspecial ||
+    carta?.acaoEspecial === "coringa" ||
+    carta?.acaoEspecial === "comprarQuatro"
+  ) {
+    return true;
+  }
+
+  const corDeReferencia = corAtual || cartaTopo.cor;
+
+  const mesmaCor = carta?.cor !== undefined && carta.cor === corDeReferencia;
+  const mesmoNumero =
     carta?.numero !== undefined &&
     cartaTopo?.numero !== undefined &&
-    carta.numero === cartaTopo.numero
-  ) {
-    podeJoga = true;
-  }
-
-  if (
-    carta?.cor !== undefined &&
-    cartaTopo?.cor !== undefined &&
-    carta.cor === cartaTopo.cor
-  ) {
-    podeJoga = true;
-  }
-
-  if (carta?.acaoEspecial === "coringa") {
-    podeJoga = true;
-  }
-
-  if (carta?.acaoEspecial === "comprarQuatro") {
-    podeJoga = true;
-  }
-
-  if (
+    carta.numero === cartaTopo.numero;
+  const mesmaAcao =
     carta?.acaoEspecial &&
     cartaTopo?.acaoEspecial &&
-    carta.acaoEspecial === cartaTopo.acaoEspecial
-  ) {
-    podeJoga = true;
-  }
+    carta.acaoEspecial === cartaTopo.acaoEspecial;
 
-  if (
-    cartaTopo?.acaoEspecial &&
-    (cartaTopo.acaoEspecial === "coringa" ||
-      cartaTopo.acaoEspecial === "comprarQuatro") &&
-    corAtual !== null &&
-    carta?.cor !== undefined &&
-    carta.cor === corAtual
-  ) {
-    podeJoga = true;
-  }
-
-  /*console.log(
-    `Carta topo: ${cartaTopo?.cor} ${cartaTopo?.numero} ${cartaTopo?.acaoEspecial}`,
-  );*/
-
-  return podeJoga;
+  return mesmaCor || mesmoNumero || mesmaAcao;
 }
 
 export function quantosComprar(
@@ -206,20 +173,21 @@ export function quantosComprar(
   precisaComprar: boolean,
   historicoMesa: CartaUno[],
 ): number {
-  if (!topo) return 1;
   if (punicaoPorNaoDizerUno) return 2;
+  if (!topo || !precisaComprar) return 1;
 
   const acao = topo.acaoEspecial;
-
-  if ((acao === "comprarDois" || acao === "comprarQuatro") && precisaComprar) {
-    let fatorMultiplicador = 1;
-    let i = historicoMesa.length - 1;
-
-    while (i >= 0 && historicoMesa[i].acaoEspecial === acao) {
-      fatorMultiplicador++;
-      i--;
+  if (acao === "comprarDois" || acao === "comprarQuatro") {
+    let acumulado = 0;
+    // Percorre o histórico de trás pra frente somando o valor das cartas de compra seguidas
+    for (let i = historicoMesa.length - 1; i >= 0; i--) {
+      if (historicoMesa[i].acaoEspecial === acao) {
+        acumulado += acao === "comprarDois" ? 2 : 4;
+      } else {
+        break;
+      }
     }
-    return (acao === "comprarDois" ? 2 : 4) * fatorMultiplicador;
+    return acumulado || (acao === "comprarDois" ? 2 : 4);
   }
 
   return 1;
@@ -231,46 +199,26 @@ export function temCartaJogavel(
   corAtual: string | null,
   precisaComprar: boolean,
 ): boolean {
-  if (!cartaTopo) return false;
-
-  return mao.some((carta) =>
-    podeJogar(carta, cartaTopo, corAtual, precisaComprar),
-  );
+  return mao.some((c) => podeJogar(c, cartaTopo, corAtual, precisaComprar));
 }
 
-const CORES_ORDEM = ["vermelho", "azul", "verde", "amarelo", "preto"];
-const ACOES_ORDEM = [
-  "pular",
-  "reverso",
-  "comprarDois",
-  "coringa",
-  "comprarQuatro",
-];
+export const ordenarMao = (mao: CartaUno[], prioridade: "cor" | "valor") => {
+  const calcularRank = (carta: CartaUno) => {
+    const corIdx = CORES_ORDEM.indexOf(carta.cor || "preto");
+    const valIdx =
+      carta.numero ?? ACOES_ORDEM.indexOf(carta.acaoEspecial!) + 10;
+    return prioridade === "cor" ? corIdx * 100 + valIdx : valIdx * 100 + corIdx;
+  };
 
-// Cria um mapa de valor único para cada carta: (Peso da Cor * 100) + Valor
-// Isso gera um ranking numérico fixo para cada combinação de carta.
-const calcularRank = (carta: CartaUno, prioridade: "cor" | "valor") => {
-  const corIdx = CORES_ORDEM.indexOf(carta.cor || "preto");
-  const valIdx = carta.numero ?? ACOES_ORDEM.indexOf(carta.acaoEspecial!) + 10;
-
-  return prioridade === "cor" ? corIdx * 100 + valIdx : valIdx * 100 + corIdx;
-};
-
-export const ordenarMao = (mao: CartaUno[], tipo: "cor" | "valor") => {
-  return [...mao].sort((a, b) => calcularRank(a, tipo) - calcularRank(b, tipo));
+  return [...mao].sort((a, b) => calcularRank(a) - calcularRank(b));
 };
 
 export function ehCartaDeBloqueio(carta: CartaUno | null): boolean {
-  if (!carta) return false;
-  return carta.acaoEspecial === "pular" || carta.acaoEspecial === "reverso";
+  return carta?.acaoEspecial === "pular" || carta?.acaoEspecial === "reverso";
 }
 
 export function ehCoringa(carta: CartaUno | null): boolean {
-  if (!carta) return false;
   return (
-    carta.acaoEspecial === "coringa" || carta.acaoEspecial === "comprarQuatro"
+    carta?.acaoEspecial === "coringa" || carta?.acaoEspecial === "comprarQuatro"
   );
-}
-function gerarIdUnico(prefixo: string): string {
-  return `${prefixo}-${Math.random().toString(36).substring(2, 9)}`;
 }

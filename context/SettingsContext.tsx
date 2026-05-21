@@ -1,37 +1,41 @@
 import React, { createContext, useState, useEffect, useContext } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-// 1. Definição do "Contrato" (o que o contexto oferece)
+export type ModoJogoID = "classico" | "treta";
+
 interface SettingsContextData {
   musicaAtivada: boolean;
   sonsAtivados: boolean;
+  modoAtivo: ModoJogoID;
   setMusicaAtivada: (val: boolean) => Promise<void>;
   setSonsAtivados: (val: boolean) => Promise<void>;
+  setModoAtivo: (modo: ModoJogoID) => Promise<void>;
 }
 
-// 2. Criação do Contexto
 const SettingsContext = createContext<SettingsContextData>(
   {} as SettingsContextData,
 );
 
-// 3. O Provider (Provedor) que envolve o App
 export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const [musicaAtivada, setMusicaAtivadaState] = useState(true);
   const [sonsAtivados, setSonsAtivadosState] = useState(true);
+  const [modoAtivo, setModoAtivoState] = useState<ModoJogoID>("classico");
 
-  // Carrega as configurações ao iniciar o app
   useEffect(() => {
     const loadSettings = async () => {
       try {
-        const [m, s] = await Promise.all([
+        const [m, s, mode] = await Promise.all([
           AsyncStorage.getItem("@musica_ativada"),
           AsyncStorage.getItem("@sons_ativados"),
+          AsyncStorage.getItem("@modo_ativo"),
         ]);
 
         if (m !== null) setMusicaAtivadaState(m === "true");
         if (s !== null) setSonsAtivadosState(s === "true");
+        // Se o modo salvo for válido, aplica. Senão, mantém "classico"
+        if (mode !== null) setModoAtivoState(mode as ModoJogoID);
       } catch (error) {
         console.error("Erro ao carregar configurações:", error);
       }
@@ -40,16 +44,19 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({
     loadSettings();
   }, []);
 
-  // Função para mudar e salvar a música
   const setMusicaAtivada = async (val: boolean) => {
     setMusicaAtivadaState(val);
     await AsyncStorage.setItem("@musica_ativada", String(val));
   };
 
-  // Função para mudar e salvar os efeitos de som
   const setSonsAtivados = async (val: boolean) => {
     setSonsAtivadosState(val);
     await AsyncStorage.setItem("@sons_ativados", String(val));
+  };
+
+  const setModoAtivo = async (modo: ModoJogoID) => {
+    setModoAtivoState(modo);
+    await AsyncStorage.setItem("@modo_ativo", modo);
   };
 
   return (
@@ -57,8 +64,10 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({
       value={{
         musicaAtivada,
         sonsAtivados,
+        modoAtivo,
         setMusicaAtivada,
         setSonsAtivados,
+        setModoAtivo,
       }}
     >
       {children}
@@ -66,5 +75,4 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({
   );
 };
 
-// 4. Hook customizado para facilitar o uso nas telas
 export const useSettings = () => useContext(SettingsContext);

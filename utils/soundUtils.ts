@@ -1,5 +1,6 @@
 import { Audio } from "expo-av";
 import { CartaUno } from "../types/CartaUno";
+import { SPECIAL_SOUNDS } from "../config/soundRegistry";
 
 /**
  * Função genérica blindada para Android SDK 55
@@ -65,19 +66,11 @@ export async function playBackgroundMusic(): Promise<Audio.Sound | null> {
 }
 
 export async function playCardSound(carta: CartaUno) {
+  // 1. Som padrão de descarte
   let soundPath = require("@/assets/sounds/card.mp3");
 
-  if (
-    carta.acaoEspecial === "comprarQuatro" ||
-    carta.acaoEspecial === "comprarDois"
-  ) {
-    soundPath = require("@/assets/sounds/beep.mp3");
-  } else if (carta.acaoEspecial === "pular") {
-    soundPath = require("@/assets/sounds/skip.mp3");
-  } else if (carta.acaoEspecial === "reverso") {
-    soundPath = require("@/assets/sounds/reverse.mp3");
-  } else if (carta.acaoEspecial === "coringa") {
-    soundPath = require("@/assets/sounds/wild.mp3");
+  if (carta.acaoEspecial && SPECIAL_SOUNDS[carta.acaoEspecial]) {
+    soundPath = SPECIAL_SOUNDS[carta.acaoEspecial];
   }
 
   await playSound(soundPath);
