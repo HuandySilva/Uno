@@ -1,50 +1,38 @@
-# Welcome to your Expo app 👋
+# Accessible Uno Mobile
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+An accessible, mobile-first adaptation of the classic Uno card game, built with React Native and Expo.
 
-## Get started
+This project is deeply inspired by the classic Mattel Uno game that I used to play endlessly during my childhood. However, the official mobile version leaves a massive gap: it is completely inaccessible for blind and visually impaired players. This project was born to fix that—creating an accessible version focused on accessible logic, screen reader compatibility, and bilingual support.
 
-1. Install dependencies
+## Why This Project? (The Core Mission)
 
-   ```bash
-   npm install
-   ```
+Mobile gaming should be inclusive. The main driving force behind this development is to overcome the accessibility barriers found in mainstream digital card games by focusing entirely on the accessible behavior of the application.
 
-2. Start the app
+Building this version provides a great hands-on environment for:
 
-   ```bash
-    npx expo start
-   ```
+- Screen Reader Optimization: Ensuring every card, turn, and game action seamlessly integrates with screen readers (VoiceOver/TalkBack).
+- Bilingual Support: Fully playable in both English and Portuguese to accommodate different audiences.
+- Complex State Management: Handling real-time, turn-based card game logic natively in React Native while keeping the accessibility tree perfectly updated.
 
-In the output, you'll find options to open the app in a
+## Future Roadmap
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+The game is actively evolving with major mechanics and features planned for future releases:
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+- [ ] Multiplayer Mode: Real-time online matches powered by a custom Node.js backend.
+- [ ] "Treta Mode": A chaotic game mode featuring custom, chaotic special cards created from scratch.
+- [ ] AI Opponents: Smart local bots to play against when offline, featuring multiple difficulty levels.
+- [ ] Advanced Screen Reader Tuning: Fine-tuning accessibility labels and spoken announcements for a seamless, audio-guided flow.
 
-## Get a fresh project
+---
 
-When you're ready, run:
+## Get Started
+
+Follow the steps below to run the game locally in your development environment.
+
+### 1. Install dependencies
+
+Ensure your development environment is set up with Node.js, then run:
 
 ```bash
-npm run reset-project
+npm install
 ```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
